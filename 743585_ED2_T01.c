@@ -285,15 +285,15 @@ void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
 					   Ir* icategory, Isf* iprice, int ncat){
 	char temp[TAM_REGISTRO];
 	Produto novo;
-
 	//obtem do usuario informações sobre o produto
-	scanf("%[^\n]", novo.nome);
-	scanf("%[^\n]", novo.marca);
-	scanf("%[^\n]", novo.data);
-	scanf("%[^\n]", novo.ano);
-	scanf("%[^\n]", novo.preco);
-	scanf("%[^\n]", novo.desconto);
+	scanf("%[^\n]\n", novo.nome);
+	scanf("%[^\n]\n", novo.marca);
+	scanf("%[^\n]\n", novo.data);
+	scanf("%[^\n]\n", novo.ano);
+	scanf("%[^\n]\n", novo.preco);
+	scanf("%[^\n]\n", novo.desconto);
 	scanf("%[^\n]", novo.categoria);
+
 	//TODO campo categoria a entrada ja vem com as barras separando mais de uma
 	//categoria?
 
@@ -306,7 +306,7 @@ void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
 
 	//imprime todos os dados do produto em uma string temporaria, para depois
 	//ser passada para o arquivo principal
-	sprintf(temp,"%s@%s@%s@%s@%s@%s@%s@%s@", novo.nome, novo.data,
+	sprintf(temp,"%s@%s@%s@%s@%s@%s@%s@", novo.nome, novo.marca, novo.data,
 			novo.ano, novo.preco, novo.desconto, novo.categoria);
 			//TODO DEVO ME PREOCUPAR COM ESSES WARNINGS ACIMA?
 			//TODO devo imprimir a chave primaria no arquivo de dados?
@@ -320,19 +320,15 @@ void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
 		aux++;
 	}
 	//inserindo a string gerada no arquivo de dados
-	strncpy(ARQUIVO, temp, 192);
-
-
+	char* fimArquivo = ARQUIVO + (192 * nregistros);
+	sprintf(fimArquivo, "%s", temp);
 	//inserindo o produto no indice primario
-		//TODO para este índice estou inserindo no fim e depois ordenando, há uma
+		// TODO para este índice estou inserindo no fim e depois ordenando, há uma
 		//melhor forma de fazer isso?
-	// int insere = (10 * nregistros) + 1;
-
 	iprimary[nregistros].rrn = nregistros;
 	strcpy(iprimary[nregistros].pk, novo.pk);
-
 	qsort(iprimary, nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
-
+	printf("P%s\n", novo.pk);
 	//inserindo no indice secundario iproduct
 	strcpy(iproduct[nregistros].string, novo.nome);
 	strcpy(iproduct[nregistros].pk, iprimary[nregistros].pk);
@@ -347,6 +343,7 @@ void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
 
 	//TODO checar insere_icategory pois deve apresentar os mesmos erros de
 	//criar_icategory
+	printf("vai buga: \n");
 	insere_icategory(iprimary, icategory, &nregistros, &ncat, novo, iprimary[nregistros].rrn);
 
 	//inserindo no indice secundario iprice
@@ -356,17 +353,18 @@ void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
 	strcpy(iprice->pk, novo.pk);
 	qsort(iprice, nregistros, sizeof(Isf), compare_preco);
 
+	nregistros++;
 }
 
 //Gera uma chave primária com base no produto fornecido como parâmetro
 void gerarChave(Produto* p){
 	int i = 0;
 	//inserindo os 2 caracteres do nome
-	for(i = 0;i < 2; i++){
-		if(p->nome[i] > 'Z')
-			p->pk[i] = p->nome[i] - 32;
+	for(int j = 0;j < 2; i++, j++){
+		if(p->nome[j] > 'Z')
+			p->pk[i] = p->nome[j] - 32;
 		else
-			p->pk[i] = p->nome[i];
+			p->pk[i] = p->nome[j];
 	}
 	//printf("chave: %c\n", p->pk);
 	//inserindo os 2 caracteres da marca
@@ -378,11 +376,14 @@ void gerarChave(Produto* p){
 	}
 	//inserindo os 4 digitos da data
 	for(int j = 0;j < 5; j++){
-		if(j != 2){
+		if(p->data[j] != '/'){
 			p->pk[i] = p->data[j];
 			i++;
 		}
 	}
+	//TODO debugar chave (bug ocorre na parte da data)
+	printf("fota men %s\n", p->pk);
+	printf("i me salva %d\n", i);
 	//inserindo os 2 digitos do ano de lançamento
 	for(int j = 0;j < 2; i++, j++){
 		p->pk[i] = p->ano[j];
@@ -578,6 +579,8 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 		}else{
 			strcpy(icategory[*ncat].cat, p);
 			ll* novo = (ll*)malloc(sizeof(ll));
+			printf("fala ai nemesis\n");
+			printf("opora%s\n", iprimary[0].pk);
 			strcpy(novo->pk, iprimary[rrn].pk);
 			icategory[*ncat].lista = novo;
 			*ncat += 1;
