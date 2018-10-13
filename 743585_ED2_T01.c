@@ -104,8 +104,11 @@ char ARQUIVO[TAM_ARQUIVO];
  * ========================================================================== */
 
  // Cadastra novo produto no sistema de arquivos
- void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
- 						Ir* icategory, Isf* iprice, int ncat);
+ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
+ 						Ir* icategory, Isf* iprice, int* ncat);
+
+//Altera produto correspondente a chave primaria passada como parâmetro
+int alterar_produto(Ip* iprimary, int* nregistros, char* chave, char* desconto);
 
  // Verifica se a chave passada como parâmetro ja existe no sistema de arquivos
  int verifica_chave(char* chave, int nregistros, Ip* iprimary);
@@ -137,7 +140,7 @@ void criar_ibrand(Ip* iprimary, Is* iproduct, int* nregistros);
 void criar_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat);
 
 //Insere produto no índice icategory
-void insere_icategory(Ip* iprimary,Ir* icategory,int* nregistros, int* ncat, Produto aux, int rrn);
+void insere_icategory(Ip* iprimary,Ir* icategory,int* nregistros, int* ncat, Produto aux);
 
 //Cria o seguinte indice
 void criar_iprice(Ip* iprimary, Isf* iprice, int* nregistros);
@@ -220,18 +223,23 @@ int main(){
 		switch(opcao)
 		{
 			case 1:
-				cadastrar_produto(iprimary, nregistros, iproduct, ibrand,
-			    					icategory, iprice, ncat);
+				cadastrar_produto(iprimary, &nregistros, iproduct, ibrand,
+			    					icategory, iprice, &ncat);
 			break;
 			case 2:
 				/*alterar desconto*/
 				printf(INICIO_ALTERACAO);
-				/*
-				if(alterar([args]))
+
+				char chave[TAM_PRIMARY_KEY];
+				char desconto[TAM_DESCONTO];
+
+				scanf("%[^\n]\n", chave);
+				scanf("%[^\n]", desconto);
+
+				if(alterar_produto(iprimary, &nregistros, chave, desconto))
 					printf(SUCESSO);
 				else
 					printf(FALHA);
-				*/
 			break;
 			case 3:
 				/*excluir produto*/
@@ -280,9 +288,11 @@ int main(){
  * ============================ FUNÇÕES IMPLEMENTADAS ============================
  * =============================== PELO ALUNO ============================== */
 
+//TODO aparentemente funções de ordenacao nao estao alterando os indices secundarios
+
 //Cadastra novo Produto nos arquivos de dados e índices
-void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
-					   Ir* icategory, Isf* iprice, int ncat){
+void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
+					   Ir* icategory, Isf* iprice, int* ncat){
 	char temp[TAM_REGISTRO];
 	Produto novo;
 	//obtem do usuario informações sobre o produto
@@ -301,7 +311,7 @@ void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
 	gerarChave(&novo);
 
 	//checa se a chave gerada já existia no sistema, se sim a função se encerra
-	if(verifica_chave(novo.pk, nregistros, iprimary) == 0)
+	if(verifica_chave(novo.pk, *nregistros, iprimary) == 0)
 		return;
 
 	//imprime todos os dados do produto em uma string temporaria, para depois
@@ -320,42 +330,62 @@ void cadastrar_produto(Ip *iprimary, int nregistros, Is* iproduct, Is* ibrand,
 		aux++;
 	}
 	//inserindo a string gerada no arquivo de dados
-	char* fimArquivo = ARQUIVO + (192 * nregistros);
+	char* fimArquivo = ARQUIVO + (192 * *nregistros);
 	sprintf(fimArquivo, "%s", temp);
+
 	//inserindo o produto no indice primario
 		// TODO para este índice estou inserindo no fim e depois ordenando, há uma
 		//melhor forma de fazer isso?
-	iprimary[nregistros].rrn = nregistros;
-	strcpy(iprimary[nregistros].pk, novo.pk);
-	qsort(iprimary, nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
-	printf("P%s\n", novo.pk);
+	iprimary[*nregistros].rrn = *nregistros;
+	strcpy(iprimary[*nregistros].pk, novo.pk);
+	qsort(iprimary, *nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
+
 	//inserindo no indice secundario iproduct
-	strcpy(iproduct[nregistros].string, novo.nome);
-	strcpy(iproduct[nregistros].pk, iprimary[nregistros].pk);
-	qsort(iproduct, nregistros, sizeof(Is),compare_nome);
+	strcpy(iproduct[*nregistros].string, novo.nome);
+	strcpy(iproduct[*nregistros].pk, iprimary[*nregistros].pk);
+	qsort(iproduct, *nregistros, sizeof(Is),compare_nome);
 
 	//inserindo no indice secundario ibrand
-	strcpy(ibrand[nregistros].string, novo.marca);
-	strcpy(ibrand[nregistros].pk, iprimary[nregistros].pk);
-	qsort(ibrand, nregistros, sizeof(Is),compare_marca);
+	strcpy(ibrand[*nregistros].string, novo.marca);
+	strcpy(ibrand[*nregistros].pk, iprimary[*nregistros].pk);
+	qsort(ibrand, *nregistros, sizeof(Is),compare_marca);
 
 	//inserindo no índice secundario icategory
-
-	//TODO checar insere_icategory pois deve apresentar os mesmos erros de
-	//criar_icategory
-	printf("vai buga: \n");
-	insere_icategory(iprimary, icategory, &nregistros, &ncat, novo, iprimary[nregistros].rrn);
+	insere_icategory(iprimary, icategory, nregistros, ncat, novo);
+	qsort(icategory, *nregistros, sizeof(Ir),compare_categoria);
 
 	//inserindo no indice secundario iprice
 	double preco_temp = atof(novo.preco);
+	iprice[*nregistros].price = (float)preco_temp;
+	strcpy(iprice[*nregistros].pk, novo.pk);
+	qsort(iprice, *nregistros, sizeof(Isf), compare_preco);
 
-	iprice->price = (float) preco_temp;
-	strcpy(iprice->pk, novo.pk);
-	qsort(iprice, nregistros, sizeof(Isf), compare_preco);
-
-	nregistros++;
+	*nregistros+= 1;
 }
 
+//Altera produto correspondente a chave primaria passada como parâmetro
+int alterar_produto(Ip* iprimary, int* nregistros, char* chave, char* desconto){
+	if(*nregistros == 0){
+		printf(ARQUIVO_VAZIO);
+		return 0;
+	}
+	int i = atoi(desconto);
+
+	while(i < 0 || i > 100 || strlen(desconto) != 3){
+		printf(CAMPO_INVALIDO);
+		scanf("%s", desconto);
+		i = atoi(desconto);
+	}
+	Produto* aux = (Produto*)bsearch(chave, iprimary, *nregistros, TAM_PRIMARY_KEY
+			,(int(*)(const void*, const void*))strcmp);
+	if(aux){
+		strcpy(aux->desconto, desconto);
+		return 1;
+	}else{
+		printf(REGISTRO_N_ENCONTRADO);
+		return 0;
+	}
+}
 //Gera uma chave primária com base no produto fornecido como parâmetro
 void gerarChave(Produto* p){
 	int i = 0;
@@ -366,7 +396,6 @@ void gerarChave(Produto* p){
 		else
 			p->pk[i] = p->nome[j];
 	}
-	//printf("chave: %c\n", p->pk);
 	//inserindo os 2 caracteres da marca
 	for(int j = 0;j < 2; i++, j++){
 		if(p->marca[j] > 'Z')
@@ -382,13 +411,11 @@ void gerarChave(Produto* p){
 		}
 	}
 	//TODO debugar chave (bug ocorre na parte da data)
-	printf("fota men %s\n", p->pk);
-	printf("i me salva %d\n", i);
 	//inserindo os 2 digitos do ano de lançamento
 	for(int j = 0;j < 2; i++, j++){
 		p->pk[i] = p->ano[j];
 	}
-	//printf("%s\n", p->pk);
+	p->pk[i] = '\0';
 }
 
 //Verifica se já existe uma chave no arquivo igual a chave passada como parâmetro
@@ -413,10 +440,6 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 	//char* p = ARQUIVO;
 	char archive[TAM_ARQUIVO];
 
-	if(*nregistros == 0){
-		return;
-	}
-
 	if(strlen(ARQUIVO) == 0){
 		indice_primario->rrn = 0;
 	}else{
@@ -440,7 +463,6 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 		//TODO é problemático so checar se o temp é nulo (fim do arquivo)
 		//depois de tentar registrar um produto todo?
 		while(temp != NULL){
-			//printf("%s\n", temp);
 			strcpy(aux.nome, temp);
 			temp = strtok(NULL,"@#");
 			strcpy(aux.marca, temp);
@@ -457,7 +479,6 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 			temp = strtok(NULL,"@#");
 			gerarChave(&aux);
 			verifica_chave(aux.pk, *nregistros, indice_primario);
-			//printf("%s\n", aux.pk);
 
 			strcpy(indice_primario[i].pk, aux.pk);
 			indice_primario[i].rrn = i;
@@ -476,20 +497,16 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 void criar_iproduct(Ip* iprimary, Is* iproduct, int* nregistros){
 	Produto aux;
 
-	if(*nregistros == 0){
+	if(strlen(ARQUIVO) == 0){
 		return;
 	}
 
 	//inserindo produto no indice secundario
 	for(int i =0; i < *nregistros; i++){
-		// int j = iprimary[i].rrn;
-		// for(int k = 0;temp[j]!= '@';k++){
-		// 	iproduct->string[k] = temp[j];
-		// }
+
 		aux = recuperar_registro(i);
-		//printf("%s\n", iprimary[i].pk);
 		strcpy(iproduct[i].string, aux.nome);
-		strcpy(iproduct[i].pk, iprimary[i].pk);
+		strcpy(iproduct[i].pk, aux.pk);
 	}
 	qsort(iproduct, *nregistros, sizeof(Is),compare_nome);
 
@@ -502,14 +519,14 @@ void criar_iproduct(Ip* iprimary, Is* iproduct, int* nregistros){
 void criar_ibrand(Ip* iprimary, Is* ibrand, int* nregistros){
 	Produto aux;
 
-	if(*nregistros == 0){
+	if(strlen(ARQUIVO) == 0){
 		return;
 	}
 
 	for(int i = 0; i < *nregistros; i++){
 		aux = recuperar_registro(i);
 		strcpy(ibrand[i].string, aux.marca);
-		strcpy(ibrand[i].pk, iprimary[i].pk);
+		strcpy(ibrand[i].pk, aux.pk);
 	}
 	qsort(ibrand, *nregistros, sizeof(Is),compare_marca);
 
@@ -523,24 +540,24 @@ void criar_ibrand(Ip* iprimary, Is* ibrand, int* nregistros){
 void criar_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat){
 	Produto aux;
 
-	if(*nregistros == 0){
+	if(strlen(ARQUIVO) == 0){
 		return;
 	}
 	for(int i =0; i < *nregistros;i++){
 		aux = recuperar_registro(i);
-		insere_icategory(iprimary, icategory, nregistros, ncat, aux, i);
+		insere_icategory(iprimary, icategory, nregistros, ncat, aux);
 	}
+	qsort(icategory, *nregistros, sizeof(Ir),compare_categoria);
 }
 
 //insere no indice secundario icategory
-void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, Produto aux, int rrn){
+void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, Produto aux){
 	char temp[TAM_CATEGORIA], *p;
 
 	strcpy(temp, aux.categoria);
 	p = strtok(temp, "|\n\0");
 
 	while(p != NULL){
-			// printf("%s\n", icategory->cat);
 			//verifica se determinada categoria ja se encontra no indice
 			//se sim, adiciona uma nova chave primaria a lista, em ordem
 		if(*ncat > 0){
@@ -549,7 +566,6 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 			ll* percorre = (ll*)bsearch(p, icategory, *ncat, sizeof(Ir),
 								(int(*)(const void*, const void*))strcmp);
 			if(percorre != NULL){
-				printf("%s\n", p);
 						//recebo o nó raiz daquela posicao no vetor
 						 // ll* percorre = icategory[i].lista;
 					ll* novo = (ll*)malloc(sizeof(ll));
@@ -564,13 +580,13 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 						}
 					 }
 						//inserindo o no na posicao correta
-					strcpy(novo->pk, iprimary[rrn].pk);
+					strcpy(novo->pk, aux.pk);
 					novo->prox = percorre;
 					aux2->prox = novo;
 			}else{
 				strcpy(icategory[*ncat].cat, p);
 				ll* novo = (ll*)malloc(sizeof(ll));
-				strcpy(novo->pk, iprimary[rrn].pk);
+				strcpy(novo->pk, aux.pk);
 				icategory[*ncat].lista = novo;
 				*ncat += 1;
 			}
@@ -579,9 +595,7 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 		}else{
 			strcpy(icategory[*ncat].cat, p);
 			ll* novo = (ll*)malloc(sizeof(ll));
-			printf("fala ai nemesis\n");
-			printf("opora%s\n", iprimary[0].pk);
-			strcpy(novo->pk, iprimary[rrn].pk);
+			strcpy(novo->pk, aux.pk);
 			icategory[*ncat].lista = novo;
 			*ncat += 1;
 		}
@@ -601,8 +615,8 @@ void criar_iprice(Ip* iprimary, Isf* iprice, int* nregistros){
 		aux = recuperar_registro(i);
 
 		double preco_temp = atof(aux.preco);
-		iprice->price = (float) preco_temp;
-		strcpy(iprice->pk, iprimary[i].pk);
+		iprice[i].price = (float) preco_temp;
+		strcpy(iprice[i].pk, aux.pk);
 	}
 	qsort(iprice, *nregistros, sizeof(Isf), compare_preco);
 
@@ -647,9 +661,17 @@ int compare_preco(const void* preco1, const void* preco2){
 		return 1;
 
 }
-int compara_categoria(const void* p1, const void* p2){
-	//TODO talvez apenas a função de strcmp seja o suficnete
-	//para ordenar as categorias?
+int compare_categoria(const void* p1, const void* p2){
+	Produto* produto1 = (Produto*)p1;
+	Produto* produto2 = (Produto*)p2;
+
+   if(strcmp(produto1->categoria, produto2->categoria) < 0)
+	   return -1;
+   else if(strcmp(produto1->categoria, produto2->categoria) == 0){
+	   return strcmp(produto1->pk, produto2->pk);
+   }else if(strcmp(produto1->categoria, produto2->categoria) > 0){
+	   return 1;
+   }
 }
 //CASO NECESSARIO FAZER AS FUNCOES DE COMPARACOES PARA OS OUTROS indices
 //ANALISANDO CAMPO ESPECIFICO DA STRUCT E COM UM SEGUNDO CRITERIO, CASO O
