@@ -104,17 +104,20 @@ char ARQUIVO[TAM_ARQUIVO];
  * ========================================================================== */
 
  // Cadastra novo produto no sistema de arquivos
- void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
+void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
  						Ir* icategory, Isf* iprice, int* ncat);
 
 //Altera produto correspondente a chave primaria passada como parâmetro
 int alterar_produto(Ip* iprimary, int* nregistros, char* chave, char* desconto);
 
+//Remove produto com base na chave primaria fornecida
+int remover_produto(Ip* iprimary, int* nregistros);
+
  // Verifica se a chave passada como parâmetro ja existe no sistema de arquivos
- int verifica_chave(char* chave, int nregistros, Ip* iprimary);
+int verifica_chave(char* chave, int nregistros, Ip* iprimary);
 
  //Gera uma chave para o produto passado como parametro
- void gerarChave(Produto* p);
+void gerarChave(Produto* p);
 
 /* Recebe do usuário uma string simulando o arquivo completo e retorna o número
  * de registros. */
@@ -157,6 +160,20 @@ int compare_preco(const void* p1, const void* p2);
 //compara a categoria de dois produtos
 int compare_categoria(const void* p1, const void* p2);
 
+//busca um registro utilizando um argumento inserido pelo usuario
+void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
+ 						Ir* icategory, Isf* iprice, int* ncat);
+
+//busca um registro utilizando a chave primaria inserida
+Ip* busca_primary(Ip* iprimary, char* chaveBusca, int* nregistros);
+
+//busca um registro utilizando o nome inserido
+Is* busca_iproduct(Is* iproduct, char* chaveNome, int* nregistros);
+//busca um registro utilizando a categoria
+Ir* busca_icategory(Ir* icategory, char* chaveCategoria, int* nregistros);
+//busca um registor utilizando a marca
+Is* busca_ibrand(Is* ibrand, char* chaveMarca, int* nregistros);
+ 
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
@@ -230,11 +247,13 @@ int main(){
 				/*alterar desconto*/
 				printf(INICIO_ALTERACAO);
 
+				//TODO posos criar essas variaveis aqui e dar scanf ou nao se
+				//deve mexer em nada na main?
 				char chave[TAM_PRIMARY_KEY];
 				char desconto[TAM_DESCONTO];
 
 				scanf("%[^\n]\n", chave);
-				scanf("%[^\n]", desconto);
+				scanf("%[^\n]\n", desconto);
 
 				if(alterar_produto(iprimary, &nregistros, chave, desconto))
 					printf(SUCESSO);
@@ -244,12 +263,12 @@ int main(){
 			case 3:
 				/*excluir produto*/
 				printf(INICIO_EXCLUSAO);
-				/*
-				if(remover([args]))
+
+				if(remover_produto(iprimary, &nregistros))
 					printf(SUCESSO);
 				else
 					printf(FALHA);
-				*/
+
 			break;
 			case 4:
 				/*busca*/
@@ -295,6 +314,8 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 					   Ir* icategory, Isf* iprice, int* ncat){
 	char temp[TAM_REGISTRO];
 	Produto novo;
+
+	//TODO funcoes de cadastrar protudos em sequencia bugam e requerem um enter a mais
 	//obtem do usuario informações sobre o produto
 	scanf("%[^\n]\n", novo.nome);
 	scanf("%[^\n]\n", novo.marca);
@@ -332,6 +353,8 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	//inserindo a string gerada no arquivo de dados
 	char* fimArquivo = ARQUIVO + (192 * *nregistros);
 	sprintf(fimArquivo, "%s", temp);
+	fimArquivo += 192;
+	*fimArquivo = '\0';
 
 	//inserindo o produto no indice primario
 		// TODO para este índice estou inserindo no fim e depois ordenando, há uma
@@ -386,6 +409,31 @@ int alterar_produto(Ip* iprimary, int* nregistros, char* chave, char* desconto){
 		return 0;
 	}
 }
+
+//Remove produto com base na chave primaria inserida
+int remover_produto(Ip* iprimary, int* nregistros){
+	char chave[TAM_PRIMARY_KEY];
+	Ip *aux;
+
+	scanf("%s", chave);
+	if(!nregistros){
+		printf(ARQUIVO_VAZIO);
+		return 0;
+	}
+
+	aux = busca_primary(iprimary, chave, nregistros);
+
+	if(aux){
+		char* posProduto = ARQUIVO + (192 * aux->rrn);
+		*(posProduto) = '|';
+		*(posProduto + 1) = '*';
+		aux->rrn = -1;
+
+		return 1;
+	}else{
+		return 0;
+	}
+}
 //Gera uma chave primária com base no produto fornecido como parâmetro
 void gerarChave(Produto* p){
 	int i = 0;
@@ -422,9 +470,6 @@ void gerarChave(Produto* p){
 int verifica_chave(char* chave, int nregistros, Ip* iprimary){
 	int *foundIt = NULL;
 
-	// char temp[TAM_ARQUIVO];
-	// strcpy(temp, ARQUIVO);
-
 	//TODO perguntar aos monitores o porque desse xenanigans antes do strcmp
 	foundIt = (int*)bsearch(chave, iprimary, nregistros, 11, (int(*)(const void*, const void*))strcmp);
 
@@ -437,7 +482,6 @@ int verifica_chave(char* chave, int nregistros, Ip* iprimary){
 
 //cria o índice primário com base no arquivo de dados
 void criar_iprimary(Ip *indice_primario, int* nregistros){
-	//char* p = ARQUIVO;
 	char archive[TAM_ARQUIVO];
 
 	if(strlen(ARQUIVO) == 0){
@@ -661,6 +705,7 @@ int compare_preco(const void* preco1, const void* preco2){
 		return 1;
 
 }
+//compara o campo de categoria de dois produtos
 int compare_categoria(const void* p1, const void* p2){
 	Produto* produto1 = (Produto*)p1;
 	Produto* produto2 = (Produto*)p2;
@@ -678,6 +723,152 @@ int compare_categoria(const void* p1, const void* p2){
 //PRIMEIRO DE EMPATE (RETURN 0) COLOCAR A COMPARACAO DO SEGUNDO CRITERIO
 //PARA O PRIMEIRO CAMPO, PROVAVELMENTE DA CERTO CHAMAR STRCOMP, APENAS PASSANDO
 //O CAMPO DA STRUCT DESEJADO
+
+//busca um registro utilizando diversos argumentos
+void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
+ 						Ir* icategory, Isf* iprice, int* ncat){
+	int opBusca = 0;
+	char chavePrim[TAM_PRIMARY_KEY];
+	char chaveNome[TAM_NOME];
+	char chaveMarca[TAM_MARCA];
+	char chaveCategoria[TAM_CATEGORIA];
+
+	scanf("%d", &opBusca);
+	if(!nregistros){
+		printf(ARQUIVO_VAZIO);
+		return;
+	}
+	switch(opBusca){
+		case 1:
+			scanf("%s", chavePrim);
+
+			Produto temp;
+			Ip* aux;
+			aux = busca_primary(iprimary, chavePrim, nregistros);
+
+			if(aux){
+				temp = recuperar_registro(aux->rrn);
+				printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
+				 temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
+		 	}else{
+				printf(REGISTRO_N_ENCONTRADO);
+				return;
+			}
+		break;
+
+		case 2:
+			scanf("%[^\n]\n", chaveNome);
+
+			Is* aux2;
+			aux2 = busca_iproduct(iproduct, chaveNome, nregistros);
+
+			//TODO devo fazer -sizeof(Is) ou -1?
+			if(aux2){
+				Ip* prim;
+				prim = busca_primary(iprimary, aux2->pk, nregistros);
+				// temp = recuperar_registro(prim->rrn);
+				// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
+				// temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
+				exibir_registro(prim->rrn, 0);
+
+				//imprimindo os produtos de mesmo nome
+				while((aux2 - 1) && ((aux2 - 1)->string == aux2->string)){
+					prim = busca_primary(iprimary, aux2->pk, nregistros);
+					// temp = recuperar_registro(prim->rrn);
+					// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
+					//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
+					exibir_registro(prim->rrn, 0);
+				}
+				while((aux2 + 1) && ((aux2 + 1)->string == aux2->string)){
+					prim = busca_primary(iprimary, aux2->pk, nregistros);
+					// temp = recuperar_registro(prim->rrn);
+					// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
+					//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
+					exibir_registro(prim->rrn, 0);
+				 }
+			 }else{
+				 printf(REGISTRO_N_ENCONTRADO);
+			 }
+		break;
+
+		case 3:
+			scanf("%[^\n]\n", chaveMarca);
+			scanf("%[^\n]\n", chaveCategoria);
+
+			Is* auxMarca;
+			Ir* auxCategoria;
+			auxMarca = busca_ibrand(ibrand, chaveMarca, nregistros);
+			auxCategoria = busca_icategory(icategory, chaveCategoria, nregistros);
+
+			if(auxMarca && auxCategoria){
+				ll* percorre= (ll*)bsearch(auxMarca->pk, auxCategoria->lista, *ncat, sizeof(Ir),
+									(int(*)(const void*, const void*))strcmp);
+				if(percorre){
+					Is* temp;
+					ll* auxPercorre = percorre;
+					while(auxPercorre){
+						temp = (Is*)bsearch(percorre->pk, ibrand, *nregistros, sizeof(Is),compare_marca);
+						if(temp->string == chaveMarca){
+							Ip* prim = (Ip*)bsearch(percorre->pk, iprimary, *nregistros,
+							 			sizeof(Ip), (int(*)(const void*, const void*))strcmp);
+							exibir_registro(prim->rrn, 0);
+						}
+						auxPercorre = auxPercorre->prox;
+					}
+				}else{
+					printf(REGISTRO_N_ENCONTRADO);
+				}
+			}else{
+				printf(REGISTRO_N_ENCONTRADO);
+			}
+
+		break;
+	}
+}
+
+Ip* busca_primary(Ip* iprimary, char* chaveBusca, int* nregistros){
+	Ip* aux;
+	aux = (Ip*)bsearch(chaveBusca, iprimary, *nregistros, sizeof(Ip),
+			(int(*)(const void*, const void*))strcmp);
+	if(aux){
+		return aux;
+	}else{
+		return NULL;
+	}
+}
+
+Is* busca_iproduct(Is* iproduct, char* chaveNome, int* nregistros){
+	Is* aux;
+
+	aux = (Is*)bsearch(chaveNome, iproduct, *nregistros, sizeof(Is),
+			compare_nome);
+	if(aux)
+		return aux;
+	else
+		return NULL;
+}
+
+Is* busca_ibrand(Is* ibrand, char* chaveMarca, int* nregistros){
+	Is* aux;
+
+	aux = (Is*)bsearch(chaveMarca, ibrand, *nregistros, sizeof(Is),
+			compare_marca);
+	if(aux)
+		return aux;
+	else
+		return NULL;
+}
+
+Ir* busca_icategory(Ir* icategory, char* chaveCategoria, int* nregistros){
+	Ir* aux;
+
+	aux = (Ir*)bsearch(chaveCategoria, icategory, *nregistros, sizeof(Ir),
+			compare_categoria);
+	if(aux)
+		return aux;
+	else
+		return NULL;
+}
 
 // ==========================================================================
 
