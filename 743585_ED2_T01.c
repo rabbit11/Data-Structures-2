@@ -108,7 +108,7 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
  						Ir* icategory, Isf* iprice, int* ncat);
 
 //Altera produto correspondente a chave primaria passada como parâmetro
-int alterar_produto(Ip* iprimary, int* nregistros, char* chave, char* desconto);
+int alterar_produto(Ip* iprimary, int* nregistros);
 
 //Remove produto com base na chave primaria fornecida
 int remover_produto(Ip* iprimary, int* nregistros);
@@ -255,13 +255,8 @@ int main(){
 
 				//TODO posos criar essas variaveis aqui e dar scanf ou nao se
 				//deve mexer em nada na main?
-				char chave[TAM_PRIMARY_KEY];
-				char desconto[TAM_DESCONTO];
 
-				scanf("%[^\n]\n", chave);
-				scanf("%[^\n]\n", desconto);
-
-				if(alterar_produto(iprimary, &nregistros, chave, desconto))
+				if(alterar_produto(iprimary, &nregistros))
 					printf(SUCESSO);
 				else
 					printf(FALHA);
@@ -341,8 +336,6 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	scanf("%[^\n]s", novo.desconto);
 	getchar();
 	scanf("%[^\n]s", novo.categoria);
-	//TODO campo categoria a entrada ja vem com as barras separando mais de uma
-	//categoria?
 
 	//gera uma chave para este novo produto
 	gerarChave(&novo);
@@ -355,7 +348,6 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	//ser passada para o arquivo principal
 	sprintf(temp,"%s@%s@%s@%s@%s@%s@%s@", novo.nome, novo.marca, novo.data,
 			novo.ano, novo.preco, novo.desconto, novo.categoria);
-			//TODO DEVO ME PREOCUPAR COM ESSES WARNINGS ACIMA?
 			//TODO devo imprimir a chave primaria no arquivo de dados?
 
 	int aux = strlen(temp);
@@ -407,7 +399,12 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 }
 
 //Altera produto correspondente a chave primaria passada como parâmetro
-int alterar_produto(Ip* iprimary, int* nregistros, char* chave, char* desconto){
+int alterar_produto(Ip* iprimary, int* nregistros){
+	char chave[TAM_PRIMARY_KEY];
+	char desconto[TAM_DESCONTO];
+
+	scanf("%[^\n]\n", chave);
+	scanf("%[^\n]\n", desconto);
 	if(*nregistros == 0){
 		printf(ARQUIVO_VAZIO);
 		return 0;
@@ -478,8 +475,6 @@ void gerarChave(Produto* p){
 			i++;
 		}
 	}
-	//TODO debugar chave (bug ocorre na parte da data)
-	//inserindo os 2 digitos do ano de lançamento
 	for(int j = 0;j < 2; i++, j++){
 		p->pk[i] = p->ano[j];
 	}
@@ -490,7 +485,6 @@ void gerarChave(Produto* p){
 int verifica_chave(char* chave, int nregistros, Ip* iprimary){
 	int *foundIt = NULL;
 
-	//TODO perguntar aos monitores o porque desse xenanigans antes do strcmp
 	foundIt = (int*)bsearch(chave, iprimary, nregistros, 11, (int(*)(const void*, const void*))strcmp);
 
 	if(foundIt != 0){
@@ -522,8 +516,6 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 		temp = strtok(archive,"@#");
 		int i = 0;
 
-		//TODO seria o método abaixo muito ineficiente? pois não sabia como trabalhar
-		//com o fato do sscanf nao mover o ponteiro
 		//TODO é problemático so checar se o temp é nulo (fim do arquivo)
 		//depois de tentar registrar um produto todo?
 		while(temp != NULL){
@@ -600,7 +592,6 @@ void criar_ibrand(Ip* iprimary, Is* ibrand, int* nregistros){
 }
 
 //cria indice secundario com as categorias e chave primaria
-//TODO talvez incluir o insere_icategory dentro para evitar repetição de codigo?
 void criar_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat){
 	Produto aux;
 
