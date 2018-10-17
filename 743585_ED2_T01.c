@@ -173,7 +173,13 @@ Is* busca_iproduct(Is* iproduct, char* chaveNome, int* nregistros);
 Ir* busca_icategory(Ir* icategory, char* chaveCategoria, int* nregistros);
 //busca um registor utilizando a marca
 Is* busca_ibrand(Is* ibrand, char* chaveMarca, int* nregistros);
- 
+//libera toda a memoria alocada pelos indices
+void liberar(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* iprice, int* nregistros, int* ncat);
+//libera memoria alocada pelo indice icategory
+void libera_icategory(Ir* icategory, int* ncat);
+//lista todos os produtos de diferentes formas
+void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* iprice,
+	 		int* nregistros, int* ncat);
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
@@ -273,10 +279,14 @@ int main(){
 			case 4:
 				/*busca*/
 				printf(INICIO_BUSCA );
+				busca_registro(iprimary, &nregistros, iproduct, ibrand,	icategory, iprice, &ncat);
+
 			break;
 			case 5:
 				/*listagens*/
 				printf(INICIO_LISTAGEM);
+				listagens(iprimary, iproduct, ibrand,icategory, iprice, &nregistros, &ncat);
+
 			break;
 			case 6:
 				/*libera espaço*/
@@ -292,6 +302,7 @@ int main(){
 			break;
 			case 9:
 	      		/*Liberar memória e finalizar o programa */
+				liberar(iprimary, iproduct, ibrand,icategory, iprice, &nregistros, &ncat);
 				return 0;
 			break;
 			default:
@@ -317,14 +328,19 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 
 	//TODO funcoes de cadastrar protudos em sequencia bugam e requerem um enter a mais
 	//obtem do usuario informações sobre o produto
-	scanf("%[^\n]\n", novo.nome);
-	scanf("%[^\n]\n", novo.marca);
-	scanf("%[^\n]\n", novo.data);
-	scanf("%[^\n]\n", novo.ano);
-	scanf("%[^\n]\n", novo.preco);
-	scanf("%[^\n]\n", novo.desconto);
-	scanf("%[^\n]", novo.categoria);
-
+	scanf("%[^\n]s", novo.nome);
+	getchar();
+	scanf("%[^\n]s", novo.marca);
+	getchar();
+	scanf("%[^\n]s", novo.data);
+	getchar();
+	scanf("%[^\n]s", novo.ano);
+	getchar();
+	scanf("%[^\n]s", novo.preco);
+	getchar();
+	scanf("%[^\n]s", novo.desconto);
+	getchar();
+	scanf("%[^\n]s", novo.categoria);
 	//TODO campo categoria a entrada ja vem com as barras separando mais de uma
 	//categoria?
 
@@ -366,22 +382,26 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	//inserindo no indice secundario iproduct
 	strcpy(iproduct[*nregistros].string, novo.nome);
 	strcpy(iproduct[*nregistros].pk, iprimary[*nregistros].pk);
-	qsort(iproduct, *nregistros, sizeof(Is),compare_nome);
+	qsort(iproduct, *nregistros, sizeof(Is),
+		(int(*)(const void*, const void*))compare_nome);
 
 	//inserindo no indice secundario ibrand
 	strcpy(ibrand[*nregistros].string, novo.marca);
 	strcpy(ibrand[*nregistros].pk, iprimary[*nregistros].pk);
-	qsort(ibrand, *nregistros, sizeof(Is),compare_marca);
+	qsort(ibrand, *nregistros, sizeof(Is),
+		(int(*)(const void*, const void*))compare_marca);
 
 	//inserindo no índice secundario icategory
 	insere_icategory(iprimary, icategory, nregistros, ncat, novo);
-	qsort(icategory, *nregistros, sizeof(Ir),compare_categoria);
+	qsort(icategory, *nregistros, sizeof(Ir),
+	 	(int(*)(const void*, const void*))compare_categoria);
 
 	//inserindo no indice secundario iprice
 	double preco_temp = atof(novo.preco);
 	iprice[*nregistros].price = (float)preco_temp;
 	strcpy(iprice[*nregistros].pk, novo.pk);
-	qsort(iprice, *nregistros, sizeof(Isf), compare_preco);
+	qsort(iprice, *nregistros, sizeof(Isf),
+		(int(*)(const void*, const void*))compare_preco);
 
 	*nregistros+= 1;
 }
@@ -552,7 +572,7 @@ void criar_iproduct(Ip* iprimary, Is* iproduct, int* nregistros){
 		strcpy(iproduct[i].string, aux.nome);
 		strcpy(iproduct[i].pk, aux.pk);
 	}
-	qsort(iproduct, *nregistros, sizeof(Is),compare_nome);
+	qsort(iproduct, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_nome);
 
 	//print para testes da corretude da funcao
 	  // for(int j = 0; j < *nregistros; j++)
@@ -572,7 +592,7 @@ void criar_ibrand(Ip* iprimary, Is* ibrand, int* nregistros){
 		strcpy(ibrand[i].string, aux.marca);
 		strcpy(ibrand[i].pk, aux.pk);
 	}
-	qsort(ibrand, *nregistros, sizeof(Is),compare_marca);
+	qsort(ibrand, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_marca);
 
 	//print para testes da corretude da funcao
 	  // for(int j = 0; j < *nregistros; j++)
@@ -591,7 +611,7 @@ void criar_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat){
 		aux = recuperar_registro(i);
 		insere_icategory(iprimary, icategory, nregistros, ncat, aux);
 	}
-	qsort(icategory, *nregistros, sizeof(Ir),compare_categoria);
+	qsort(icategory, *nregistros, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
 }
 
 //insere no indice secundario icategory
@@ -725,6 +745,8 @@ int compare_categoria(const void* p1, const void* p2){
 //O CAMPO DA STRUCT DESEJADO
 
 //busca um registro utilizando diversos argumentos
+//TODO não encontra registros quando procurado por quaisquer outros meios
+//além da pk
 void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
  						Ir* icategory, Isf* iprice, int* ncat){
 	int opBusca = 0;
@@ -740,7 +762,7 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	}
 	switch(opBusca){
 		case 1:
-			scanf("%s", chavePrim);
+			scanf("%s*\n", chavePrim);
 
 			Produto temp;
 			Ip* aux;
@@ -757,10 +779,12 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 		break;
 
 		case 2:
-			scanf("%[^\n]\n", chaveNome);
+			getchar();
+			scanf("%[^\n]s", chaveNome);
 
 			Is* aux2;
 			aux2 = busca_iproduct(iproduct, chaveNome, nregistros);
+			printf("entrou no if\n");
 
 			//TODO devo fazer -sizeof(Is) ou -1?
 			if(aux2){
@@ -792,8 +816,10 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 		break;
 
 		case 3:
-			scanf("%[^\n]\n", chaveMarca);
-			scanf("%[^\n]\n", chaveCategoria);
+			getchar();
+			scanf("%[^\n]s", chaveMarca);
+			getchar();
+			scanf("%[^\n]s", chaveCategoria);
 
 			Is* auxMarca;
 			Ir* auxCategoria;
@@ -826,6 +852,7 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	}
 }
 
+//realiza busca no indice primario
 Ip* busca_primary(Ip* iprimary, char* chaveBusca, int* nregistros){
 	Ip* aux;
 	aux = (Ip*)bsearch(chaveBusca, iprimary, *nregistros, sizeof(Ip),
@@ -837,39 +864,127 @@ Ip* busca_primary(Ip* iprimary, char* chaveBusca, int* nregistros){
 	}
 }
 
+//realiza busca no indice secundario iproduct
 Is* busca_iproduct(Is* iproduct, char* chaveNome, int* nregistros){
 	Is* aux;
-
 	aux = (Is*)bsearch(chaveNome, iproduct, *nregistros, sizeof(Is),
-			compare_nome);
+	(int(*)(const void*, const void*))compare_nome);
+
 	if(aux)
 		return aux;
 	else
 		return NULL;
 }
 
+//realiza busca no indice secundario ibrand
 Is* busca_ibrand(Is* ibrand, char* chaveMarca, int* nregistros){
 	Is* aux;
 
 	aux = (Is*)bsearch(chaveMarca, ibrand, *nregistros, sizeof(Is),
-			compare_marca);
+			(int(*)(const void*, const void*)) compare_marca);
 	if(aux)
 		return aux;
 	else
 		return NULL;
 }
 
+//realiza busca no indice secundario icategory
 Ir* busca_icategory(Ir* icategory, char* chaveCategoria, int* nregistros){
 	Ir* aux;
 
 	aux = (Ir*)bsearch(chaveCategoria, icategory, *nregistros, sizeof(Ir),
-			compare_categoria);
+			(int(*)(const void*, const void*)) compare_categoria);
 	if(aux)
 		return aux;
 	else
 		return NULL;
 }
 
+//lista registros de diferentes maneiras
+void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* iprice,
+	 		int* nregistros, int* ncat){
+	int opLista = 0;
+	Ip* temp;
+	ll* aux;
+	Ip* tempbrand;
+	Ip* tempprice;
+
+	scanf("%d%*c", &opLista);
+
+	if(!nregistros){
+		printf(REGISTRO_N_ENCONTRADO);
+		return;
+	}
+	switch(opLista){
+		case 1:
+			for(int j = 0; j < *nregistros; j++){
+				exibir_registro(iprimary[j].rrn, 0);
+				printf("\n");
+			}
+
+		break;
+		case 2:
+		for(int i = 0; i < *ncat; i++){
+			aux =  icategory[i].lista;
+			while(aux != NULL){
+				temp = (Ip*)bsearch(aux->pk, iprimary, *nregistros, sizeof(Ip),
+						(int(*)(const void*, const void*))strcmp);
+				exibir_registro(temp->rrn, 0);
+				aux = aux->prox;
+			}
+			printf("\n");
+		}
+		break;
+		case 3:
+			for(int j = 0; j < *nregistros; j++){
+				tempbrand = (Ip*)bsearch(ibrand[j].pk, iprimary, *nregistros, sizeof(Ip),
+							(int(*)(const void*, const void*))strcmp);
+				exibir_registro(tempbrand->rrn, 0);
+				printf("\n");
+			}
+		break;
+		case 4:
+		for(int j = 0; j < *nregistros; j++){
+			tempprice = (Ip*)bsearch(iprice[j].pk, iprimary, *nregistros, sizeof(Ip),
+						(int(*)(const void*, const void*))strcmp);
+			exibir_registro(tempprice->rrn, 1);
+			printf("\n");
+		}
+		break;
+	}
+}
+
+//libera toda memória antes alocada
+void liberar(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* iprice, int* nregistros, int* ncat){
+	//liberando memoria de icategory
+	libera_icategory(icategory, ncat);
+
+	//liberando memoria de iprice
+	free(iprice);
+
+	//liberando memoria de ibrand
+	free(ibrand);
+
+	//liberando memoria de iproduct
+	free(iproduct);
+
+	//liberando memoria de iprimary
+	free(iprimary);
+}
+
+//libera memoria de icategory
+void libera_icategory(Ir* icategory, int* ncat){
+	ll *aux, *temp;
+
+	for(int i = 0; i < *ncat; i++){
+		aux = icategory[i].lista;
+		while(aux != NULL){
+			temp = aux;
+			aux = aux->prox;
+			free(temp);
+		}
+	}
+}
 // ==========================================================================
 
 /* Exibe o Produto */
