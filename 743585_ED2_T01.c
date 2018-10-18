@@ -345,7 +345,7 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	//ser passada para o arquivo principal
 	sprintf(temp,"%s@%s@%s@%s@%s@%s@%s@", novo.nome, novo.marca, novo.data,
 			novo.ano, novo.preco, novo.desconto, novo.categoria);
-			//TODO devo imprimir a chave primaria no arquivo de dados?
+	//TODO devo imprimir a chave primaria no arquivo de dados?
 
 	int aux = strlen(temp);
 
@@ -362,37 +362,34 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	*fimArquivo = '\0';
 
 	//inserindo o produto no indice primario
-		// TODO para este índice estou inserindo no fim e depois ordenando, há uma
-		//melhor forma de fazer isso?
+	// TODO para este índice estou inserindo no fim e depois ordenando, há uma
+	//melhor forma de fazer isso?
 	iprimary[*nregistros].rrn = *nregistros;
 	strcpy(iprimary[*nregistros].pk, novo.pk);
-	qsort(iprimary, *nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
 
 	//inserindo no indice secundario iproduct
 	strcpy(iproduct[*nregistros].string, novo.nome);
 	strcpy(iproduct[*nregistros].pk, iprimary[*nregistros].pk);
-	qsort(iproduct, *nregistros, sizeof(Is),
-		(int(*)(const void*, const void*))compare_nome);
 
 	//inserindo no indice secundario ibrand
 	strcpy(ibrand[*nregistros].string, novo.marca);
 	strcpy(ibrand[*nregistros].pk, iprimary[*nregistros].pk);
-	qsort(ibrand, *nregistros, sizeof(Is),
-		(int(*)(const void*, const void*))compare_marca);
 
 	//inserindo no índice secundario icategory
 	insere_icategory(iprimary, icategory, nregistros, ncat, novo);
-	qsort(icategory, *nregistros, sizeof(Ir),
-	 	(int(*)(const void*, const void*))compare_categoria);
 
 	//inserindo no indice secundario iprice
 	double preco_temp = atof(novo.preco);
 	iprice[*nregistros].price = (float)preco_temp;
 	strcpy(iprice[*nregistros].pk, novo.pk);
-	qsort(iprice, *nregistros, sizeof(Isf),
-		(int(*)(const void*, const void*))compare_preco);
 
 	*nregistros+= 1;
+
+	qsort(iprimary, *nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
+	qsort(iproduct, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_nome);
+	qsort(ibrand, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_marca);
+	qsort(icategory, *nregistros, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
+	qsort(iprice, *nregistros, sizeof(Isf), (int(*)(const void*, const void*))compare_preco);
 }
 
 //Altera produto correspondente a chave primaria passada como parâmetro
@@ -485,6 +482,7 @@ int verifica_chave(char* chave, int nregistros, Ip* iprimary){
 	foundIt = (int*)bsearch(chave, iprimary, nregistros, sizeof(Ip),
 	 			(int(*)(const void*, const void*))strcmp);
 	if(foundIt){
+		printf(ERRO_PK_REPETIDA, chave);
 		return 0;
 	}
 	return 1;
@@ -531,10 +529,9 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 			temp = strtok(NULL,"@#");
 			gerarChave(&aux);
 
-			if(verifica_chave(aux.pk, *nregistros, indice_primario) == 0){
-				printf(ERRO_PK_REPETIDA, aux.pk);
+			if(verifica_chave(aux.pk, *nregistros, indice_primario) == 0)
 				return;
-			}
+
 			strcpy(indice_primario[i].pk, aux.pk);
 			indice_primario[i].rrn = i;
 			i++;
@@ -608,6 +605,7 @@ void criar_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat){
 void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, Produto aux){
 	char temp[TAM_CATEGORIA], *p;
 
+	//TODO VER Quando entra na condição de encontrar igual e oq acontece e onde cria a nova categoria
 	strcpy(temp, aux.categoria);
 	p = strtok(temp, "|");
 	while(p != NULL){
@@ -628,22 +626,33 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 
 				 //percorro o vetor até a char a posicao correta
 				 //para inserir o novo nó
-				while(percorre){
-					if(strcmp(aux.pk, percorre->pk) > 0){
-					 	aux2 = percorre;
-						percorre = percorre->prox;
+				while(percorre->prox != NULL){
+					if(strcmp(aux.pk, percorre->pk) < 0){
+						//inserindo o no na posicao correta
+						strcpy(novo->pk, aux.pk);
+						novo->prox = percorre;
+						aux2->prox = novo;
+						break;
 					}
+					aux2 = percorre;
+					percorre = percorre->prox;
 				 }
-				//inserindo o no na posicao correta
-				strcpy(novo->pk, aux.pk);
-				novo->prox = percorre;
-				aux2->prox = novo;
+				 if(percorre->prox == NULL){
+					 if(strcmp(aux.pk, percorre->pk) < 0){
+						 strcpy(novo->pk, aux.pk);
+						 novo->prox = percorre;
+					 }else{
+						 strcpy(novo->pk, aux.pk);
+						 percorre->prox = novo;
+					 }
+				 }
 			}else{
 				strcpy(icategory[*ncat].cat, p);
 				ll* novo = (ll*)malloc(sizeof(ll));
 				novo->prox = NULL;
 				strcpy(novo->pk, aux.pk);
 				icategory[*ncat].lista = novo;
+				printf("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
 				*ncat += 1;
 			}
 			//se nao, insere a nova categoria ao vet de categorias e inicia
@@ -654,10 +663,12 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 			novo->prox = NULL;
 			strcpy(novo->pk, aux.pk);
 			icategory[*ncat].lista = novo;
+			printf("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
 			*ncat += 1;
 		}
 		p = strtok(NULL, "|");
 	}
+
 }
 
 //cria indice secundario com preco e chave primaria
@@ -675,7 +686,7 @@ void criar_iprice(Ip* iprimary, Isf* iprice, int* nregistros){
 		iprice[i].price = (float) preco_temp;
 		strcpy(iprice[i].pk, aux.pk);
 	}
-	qsort(iprice, *nregistros, sizeof(Isf), compare_preco);
+	qsort(iprice, *nregistros, sizeof(Isf), (int(*)(const void*, const void*))compare_preco);
 
 	// for(int j = 0; j < *nregistros; j++)
 	//   printf("preco: %lf / chave: %s\n", iprice[j].price, iprice[j].pk);
@@ -683,28 +694,28 @@ void criar_iprice(Ip* iprimary, Isf* iprice, int* nregistros){
 
 //compara os campos de nome de dois produtos
 int compare_nome(const void* nome1, const void* nome2){
-	 Produto* produto1 = (Produto*)nome1;
-	 Produto* produto2 = (Produto*)nome2;
+	Is* produto1 = (Is*)nome1;
+	Is* produto2 = (Is*)nome2;
 
-	if(strcmp(produto1->nome, produto2->nome) < 0)
-		return -1;
-	else if(strcmp(produto1->nome, produto2->nome) == 0){
-		return strcmp(produto1->pk, produto2->pk);
-	}else if(strcmp(produto1->nome, produto2->nome) > 0){
-		return 1;
+	if(strcmp(produto1->string, produto2->string) < 0)
+	   return -1;
+	else if(strcmp(produto1->string, produto2->string) == 0){
+	   return strcmp(produto1->pk, produto2->pk);
+	}else if(strcmp(produto1->string, produto2->string) > 0){
+	   return 1;
 	}
 }
 
 //compara os campos de marca de dois produtos
 int compare_marca(const void* marca1, const void* marca2){
-	 Produto* produto1 = (Produto*)marca1;
-	 Produto* produto2 = (Produto*)marca2;
+	 Is* produto1 = (Is*)marca1;
+	 Is* produto2 = (Is*)marca2;
 
-	if(strcmp(produto1->marca, produto2->marca) < 0)
+	if(strcmp(produto1->string, produto2->string) < 0)
 		return -1;
-	else if(strcmp(produto1->marca, produto2->marca) == 0){
+	else if(strcmp(produto1->string, produto2->string) == 0){
 		return strcmp(produto1->pk, produto2->pk);
-	}else if(strcmp(produto1->marca, produto2->marca) > 0){
+	}else if(strcmp(produto1->string, produto2->string) > 0){
 		return 1;
 	}
 }
@@ -720,14 +731,14 @@ int compare_preco(const void* preco1, const void* preco2){
 }
 //compara o campo de categoria de dois produtos
 int compare_categoria(const void* p1, const void* p2){
-	Produto* produto1 = (Produto*)p1;
-	Produto* produto2 = (Produto*)p2;
+	Ir* produto1 = (Ir*)p1;
+	Ir* produto2 = (Ir*)p2;
 
-   if(strcmp(produto1->categoria, produto2->categoria) < 0)
+   if(strcmp(produto1->cat, produto2->cat) < 0)
 	   return -1;
-   else if(strcmp(produto1->categoria, produto2->categoria) == 0){
-	   return strcmp(produto1->pk, produto2->pk);
-   }else if(strcmp(produto1->categoria, produto2->categoria) > 0){
+   else if(strcmp(produto1->cat, produto2->cat) == 0){
+	   return strcmp(produto1->lista->pk, produto2->lista->pk);
+   }else if(strcmp(produto1->cat, produto2->cat) > 0){
 	   return 1;
    }
 }
