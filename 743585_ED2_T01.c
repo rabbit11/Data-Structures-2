@@ -178,11 +178,15 @@ Ir* busca_icategory(Ir* icategory, char* chaveCategoria, int* nregistros);
 Is* busca_ibrand(Is* ibrand, char* chaveMarca, int* nregistros);
 //libera toda a memoria alocada pelos indices
 void liberar(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* iprice, int* nregistros, int* ncat);
+//libera campos excluidos do arquivo de dados
+void liberar_espaco();
 //libera memoria alocada pelo indice icategory
 void libera_icategory(Ir* icategory, int* ncat);
 //lista todos os produtos de diferentes formas
 void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* iprice,
 	 		int* nregistros, int* ncat);
+//busca linear no indice icategory
+Ir* lsearch_icategory(Ir* icategory, int ncat, char* categoria);
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
@@ -287,10 +291,14 @@ int main(){
 			break;
 			case 6:
 				/*libera espaço*/
+				liberar_espaco();
 			break;
 			case 7:
 				/*imprime o arquivo de dados*/
 				printf(INICIO_ARQUIVO);
+				if(strlen(ARQUIVO) == 0){
+					printf(ARQUIVO_VAZIO);
+				}
 				printf("%s\n", ARQUIVO);
 			break;
 			case 8:
@@ -388,7 +396,8 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	qsort(iprimary, *nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
 	qsort(iproduct, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_nome);
 	qsort(ibrand, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_marca);
-	qsort(icategory, *nregistros, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
+	printf("nreg do caraio %d\n", *nregistros);
+	qsort(icategory, *ncat, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
 	qsort(iprice, *nregistros, sizeof(Isf), (int(*)(const void*, const void*))compare_preco);
 }
 
@@ -597,7 +606,7 @@ void criar_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat){
 		aux = recuperar_registro(i);
 		insere_icategory(iprimary, icategory, nregistros, ncat, aux);
 	}
-	qsort(icategory, *nregistros, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
+	qsort(icategory, *ncat, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
 }
 
 //insere no indice secundario icategory
@@ -614,8 +623,9 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 		if(*ncat > 0){
 				//if ncat > 0 evita que compare na primeira insercao, ja que
 				//em ncat == 0 nao ha elementos no indice
-			Ir* findrepetida = (Ir*)bsearch(p, icategory, *ncat, sizeof(Ir),
-								(int(*)(const void*, const void*))compare_categoria_busca);
+			// Ir* findrepetida = (Ir*)bsearch(p, icategory, *ncat, sizeof(Ir),
+			// 					(int(*)(const void*, const void*))compare_categoria_busca);
+			Ir* findrepetida = lsearch_icategory(icategory, *ncat, p);
 			if(findrepetida){
 				ll* percorre = findrepetida->lista;
 				//recebo o nó raiz daquela posicao no vetor
@@ -628,21 +638,30 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 				 //para inserir o novo nó
 				while(percorre->prox != NULL){
 					if(strcmp(aux.pk, percorre->pk) < 0){
-						//inserindo o no na posicao correta
+						//inserção no inicio de categoria com mais de um termo
+						if(percorre == findrepetida->lista){
+							strcpy(novo->pk, aux.pk);
+							findrepetida->lista = novo;
+							novo->prox = percorre;
+						}else{
+						//inserção no meio da cateogira
 						strcpy(novo->pk, aux.pk);
 						novo->prox = percorre;
 						aux2->prox = novo;
 						break;
+						}
 					}
+					// printf("bug? %s %s, %d\n", percorre->pk, percorre->prox->pk, *ncat);
 					aux2 = percorre;
 					percorre = percorre->prox;
-				 }
+				}//inserção no fim da categoria
 				 if(percorre->prox == NULL){
 					 if(strcmp(aux.pk, percorre->pk) < 0){
 						 strcpy(novo->pk, aux.pk);
 						 novo->prox = percorre;
 					 }else{
 						 strcpy(novo->pk, aux.pk);
+						 novo->prox = percorre->prox;
 						 percorre->prox = novo;
 					 }
 				 }
@@ -652,7 +671,7 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 				novo->prox = NULL;
 				strcpy(novo->pk, aux.pk);
 				icategory[*ncat].lista = novo;
-				printf("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
+				//printf("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
 				*ncat += 1;
 			}
 			//se nao, insere a nova categoria ao vet de categorias e inicia
@@ -663,14 +682,12 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 			novo->prox = NULL;
 			strcpy(novo->pk, aux.pk);
 			icategory[*ncat].lista = novo;
-			printf("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
+			// printf("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
 			*ncat += 1;
 		}
 		p = strtok(NULL, "|");
 	}
-
 }
-
 //cria indice secundario com preco e chave primaria
 void criar_iprice(Ip* iprimary, Isf* iprice, int* nregistros){
 	Produto aux;
@@ -691,7 +708,6 @@ void criar_iprice(Ip* iprimary, Isf* iprice, int* nregistros){
 	// for(int j = 0; j < *nregistros; j++)
 	//   printf("preco: %lf / chave: %s\n", iprice[j].price, iprice[j].pk);
 }
-
 //compara os campos de nome de dois produtos
 int compare_nome(const void* nome1, const void* nome2){
 	Is* produto1 = (Is*)nome1;
@@ -705,7 +721,6 @@ int compare_nome(const void* nome1, const void* nome2){
 	   return 1;
 	}
 }
-
 //compara os campos de marca de dois produtos
 int compare_marca(const void* marca1, const void* marca2){
 	 Is* produto1 = (Is*)marca1;
@@ -737,11 +752,12 @@ int compare_categoria(const void* p1, const void* p2){
    if(strcmp(produto1->cat, produto2->cat) < 0)
 	   return -1;
    else if(strcmp(produto1->cat, produto2->cat) == 0){
-	   return strcmp(produto1->lista->pk, produto2->lista->pk);
+	   return 0;
    }else if(strcmp(produto1->cat, produto2->cat) > 0){
 	   return 1;
    }
 }
+//busca linear para o indice icategory
 //compara uma string com uma categoria do indice icategory
 int compare_categoria_busca(const void* p1, const void* p2){
 	char* categoriaP = (char*)p1;
@@ -1001,6 +1017,28 @@ void libera_icategory(Ir* icategory, int* ncat){
 			free(temp);
 		}
 	}
+}
+//libera do arquivo de dados os registros removidos
+void liberar_espaco(){
+	char* p = ARQUIVO;
+	char arquivoAux[TAM_ARQUIVO];
+
+	for(int i = 0; *p != '\0' && p != NULL; i++){
+		if(*p != '*' && *(p + 1) != '|'){
+			arquivoAux[i] = *p;
+		}else{
+			p += 192;
+		}
+	}
+}
+//busca linear para encontrar uma categoria no icategory
+Ir* lsearch_icategory(Ir* icategory, int ncat, char* categoria){
+	for(int i = 0;i < ncat; i++){
+		if(strcmp(icategory[i].cat, categoria) == 0){
+			return &icategory[i];
+		}
+	}
+	return NULL;
 }
 // ==========================================================================
 
