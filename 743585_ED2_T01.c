@@ -187,6 +187,8 @@ void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* ipric
 	 		int* nregistros, int* ncat);
 //busca linear no indice icategory
 Ir* lsearch_icategory(Ir* icategory, int ncat, char* categoria);
+//busca linear no indice iproduct
+Is* lsearch_iproduct(Is* iproduct, int nregistros, char* nome);
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
@@ -396,7 +398,6 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	qsort(iprimary, *nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
 	qsort(iproduct, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_nome);
 	qsort(ibrand, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_marca);
-	printf("nreg do caraio %d\n", *nregistros);
 	qsort(icategory, *ncat, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
 	qsort(iprice, *nregistros, sizeof(Isf), (int(*)(const void*, const void*))compare_preco);
 }
@@ -651,7 +652,6 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 						break;
 						}
 					}
-					// printf("bug? %s %s, %d\n", percorre->pk, percorre->prox->pk, *ncat);
 					aux2 = percorre;
 					percorre = percorre->prox;
 				}//inserção no fim da categoria
@@ -671,7 +671,7 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 				novo->prox = NULL;
 				strcpy(novo->pk, aux.pk);
 				icategory[*ncat].lista = novo;
-				//printf("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
+				//("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
 				*ncat += 1;
 			}
 			//se nao, insere a nova categoria ao vet de categorias e inicia
@@ -682,7 +682,7 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 			novo->prox = NULL;
 			strcpy(novo->pk, aux.pk);
 			icategory[*ncat].lista = novo;
-			// printf("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
+			// ("%s %s\n", icategory[*ncat].cat, icategory[*ncat].lista->pk);
 			*ncat += 1;
 		}
 		p = strtok(NULL, "|");
@@ -788,37 +788,36 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	char chaveMarca[TAM_MARCA];
 	char chaveCategoria[TAM_CATEGORIA];
 
-	scanf("%d", &opBusca);
+	scanf("%d%*c", &opBusca);
 	if(!nregistros){
 		printf(ARQUIVO_VAZIO);
 		return;
 	}
 	switch(opBusca){
-		case 1:
-			scanf("%s*\n", chavePrim);
+		case 1://busca pela chave primaria
+			scanf("%[^\n]%*c", chavePrim);
 
 			Produto temp;
 			Ip* aux;
 			aux = busca_primary(iprimary, chavePrim, nregistros);
 
 			if(aux){
-				temp = recuperar_registro(aux->rrn);
-				printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
-				 temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
+				// temp = recuperar_registro(aux->rrn);
+				// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
+				//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
+				exibir_registro(aux->rrn, 0);
 		 	}else{
 				printf(REGISTRO_N_ENCONTRADO);
 				return;
 			}
 		break;
 
-		case 2:
-			getchar();
-			scanf("%[^\n]s", chaveNome);
-
+		case 2://busca pelo nome do produto
+			scanf("%[^\n]%*c", chaveNome);
+			//TODO BUSCA POR NOME, MARCA E CATEGORIA NAO RETORNAM NADA
+			printf("why u do dis %s\n",chaveNome);
 			Is* aux2;
-			aux2 = busca_iproduct(iproduct, chaveNome, nregistros);
-			printf("entrou no if\n");
-
+			aux2 = lsearch_iproduct(iproduct, *nregistros, chaveNome);
 			//TODO devo fazer -sizeof(Is) ou -1?
 			if(aux2){
 				Ip* prim;
@@ -848,11 +847,9 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 			 }
 		break;
 
-		case 3:
-			getchar();
-			scanf("%[^\n]s", chaveMarca);
-			getchar();
-			scanf("%[^\n]s", chaveCategoria);
+		case 3://busca pela marca e categoria
+			scanf("%[^\n]%*c", chaveMarca);
+			scanf("%[^\n]%*c", chaveCategoria);
 
 			Is* auxMarca;
 			Ir* auxCategoria;
@@ -901,14 +898,13 @@ Ip* busca_primary(Ip* iprimary, char* chaveBusca, int* nregistros){
 Is* busca_iproduct(Is* iproduct, char* chaveNome, int* nregistros){
 	Is* aux;
 	aux = (Is*)bsearch(chaveNome, iproduct, *nregistros, sizeof(Is),
-	(int(*)(const void*, const void*))compare_nome);
+	(int(*)(const void*, const void*))strcmp);
 
 	if(aux)
 		return aux;
 	else
 		return NULL;
 }
-
 //realiza busca no indice secundario ibrand
 Is* busca_ibrand(Is* ibrand, char* chaveMarca, int* nregistros){
 	Is* aux;
@@ -952,7 +948,10 @@ void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* ipric
 		case 1:
 			for(int j = 0; j < *nregistros; j++){
 				exibir_registro(iprimary[j].rrn, 0);
-				printf("\n");
+				if(j != *nregistros - 1)
+					printf("\n");
+				else
+					break;
 			}
 
 		break;
@@ -965,7 +964,10 @@ void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* ipric
 				exibir_registro(temp->rrn, 0);
 				aux = aux->prox;
 			}
-			printf("\n");
+			if(i != *nregistros - 1)
+				printf("\n");
+			else
+				break;
 		}
 		break;
 		case 3:
@@ -973,7 +975,11 @@ void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* ipric
 				tempbrand = (Ip*)bsearch(ibrand[j].pk, iprimary, *nregistros, sizeof(Ip),
 							(int(*)(const void*, const void*))strcmp);
 				exibir_registro(tempbrand->rrn, 0);
-				printf("\n");
+
+				if(j != *nregistros - 1)
+					printf("\n");
+				else
+					break;
 			}
 		break;
 		case 4:
@@ -981,8 +987,14 @@ void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* ipric
 			tempprice = (Ip*)bsearch(iprice[j].pk, iprimary, *nregistros, sizeof(Ip),
 						(int(*)(const void*, const void*))strcmp);
 			exibir_registro(tempprice->rrn, 1);
-			printf("\n");
+
+			if(j != *nregistros - 1)
+				printf("\n");
+			else
+				break;
 		}
+		break;
+		default:
 		break;
 	}
 }
@@ -1031,11 +1043,25 @@ void liberar_espaco(){
 		}
 	}
 }
+
+//Após conversar com alguns alunos que já concluíram esta disciplina,
+//conclui que talvez fosse melhor usar busca linear do que bsearch que as vezes gera
+//resultados inesperados
+
 //busca linear para encontrar uma categoria no icategory
 Ir* lsearch_icategory(Ir* icategory, int ncat, char* categoria){
 	for(int i = 0;i < ncat; i++){
 		if(strcmp(icategory[i].cat, categoria) == 0){
 			return &icategory[i];
+		}
+	}
+	return NULL;
+}
+//busca linear para encontrar um nome no iproduct
+Is* lsearch_iproduct(Is* iproduct, int nregistros, char* nome){
+	for(int i =0; i <nregistros;i++){
+		if(strcmp(iproduct[i].string, nome) == 0){
+			return &iproduct[i];
 		}
 	}
 	return NULL;
