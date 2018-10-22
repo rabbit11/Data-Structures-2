@@ -253,7 +253,6 @@ int main(){
 	int opcao = 0;
 	while(1)
 	{
-
 		scanf("%d%*c", &opcao);
 		switch(opcao)
 		{
@@ -264,9 +263,6 @@ int main(){
 			case 2:
 				/*alterar desconto*/
 				printf(INICIO_ALTERACAO);
-
-				//TODO posos criar essas variaveis aqui e dar scanf ou nao se
-				//deve mexer em nada na main?
 
 				if(alterar_produto(iprimary, &nregistros, iprice))
 					printf(SUCESSO);
@@ -373,8 +369,6 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	*fimArquivo = '\0';
 
 	//inserindo o produto no indice primario
-	// TODO para este índice estou inserindo no fim e depois ordenando, há uma
-	//melhor forma de fazer isso?
 	iprimary[*nregistros].rrn = *nregistros;
 	strcpy(iprimary[*nregistros].pk, novo.pk);
 
@@ -425,33 +419,31 @@ int alterar_produto(Ip* iprimary, int* nregistros, Isf* iprice){
 	if(!temp){
 		printf(REGISTRO_N_ENCONTRADO);
 		return 0;
-	}
-	//conferindo se o desconto passado pelo usuario segue a formatacao necessaria
-	while(i < 0 || i > 100 || strlen(desconto) != 3){
-		printf(CAMPO_INVALIDO);
-		scanf("%s%*c", desconto);
-		i = atoi(desconto);
-	}
-	//checa se o registro nao foi removido
-	if(temp->rrn != -1){
-		int deslocamento = 0;
-
-		Produto aux = recuperar_registro(temp->rrn);
-
-		//encontrando deslocamento necessario para a escrita no arquivo de dados
-		deslocamento = strlen(aux.nome) + strlen(aux.marca) + strlen(aux.data) + strlen(aux.ano)
-						+ strlen(aux.preco) + (temp->rrn * 192) + 5;
-		char* auxiliar = ARQUIVO + deslocamento;
-
-		for(int i = 0; i < 3; i++){
-			auxiliar[i] = desconto[i];
-		}
-		//recriando o indice iprice com os novos valores
-		criar_iprice(iprimary, iprice, nregistros);
-		return 1;
 	}else{
-		return 0;
+		//conferindo se o desconto passado pelo usuario segue a formatacao necessaria
+		while(i < 0 || i > 100 || strlen(desconto) != 3){
+			printf(CAMPO_INVALIDO);
+			scanf("%s%*c", desconto);
+			i = atoi(desconto);
+		}
+		//checa se o registro nao foi removido
+		if(temp->rrn != -1){
+			int deslocamento = 0;
+			Produto aux = recuperar_registro(temp->rrn);
+
+			//encontrando deslocamento necessario para a escrita no arquivo de dados
+			deslocamento = strlen(aux.nome) + strlen(aux.marca) + strlen(aux.data) + strlen(aux.ano)
+							+ strlen(aux.preco) + (temp->rrn * 192) + 5;
+			char* auxiliar = ARQUIVO + deslocamento;
+			//escrevendo o novo desconto no arquivo de dados
+			for(int i = 0; i < 3; i++){
+				auxiliar[i] = desconto[i];
+			}
+			//recriando o indice iprice com os novos valores
+			criar_iprice(iprimary, iprice, nregistros);
+		}
 	}
+	return 1;
 }
 //Remove produto com base na chave primaria inserida
 int remover_produto(Ip* iprimary, int* nregistros){
@@ -468,8 +460,8 @@ int remover_produto(Ip* iprimary, int* nregistros){
 
 	if(aux){
 		char* posProduto = ARQUIVO + (192 * aux->rrn);
-		*(posProduto) = '|';
-		*(posProduto + 1) = '*';
+		*(posProduto) = '*';
+		*(posProduto + 1) = '|';
 		aux->rrn = -1;
 
 		return 1;
@@ -619,7 +611,6 @@ void criar_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat){
 	qsort(icategory, *ncat, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
 }
 //insere no indice secundario icategory
-//TODO algumas categorias estão sendo inseridas mais de uma vez
 void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, Produto aux){
 	char temp[TAM_CATEGORIA], *p;
 
@@ -770,7 +761,6 @@ int compare_categoria(const void* p1, const void* p2){
 	   return 1;
    }
 }
-//busca linear para o indice icategory
 //compara uma string com uma categoria do indice icategory
 int compare_categoria_busca(const void* p1, const void* p2){
 	char* categoriaP = (char*)p1;
@@ -785,8 +775,6 @@ int compare_categoria_busca(const void* p1, const void* p2){
    }
 }
 //busca um registro utilizando diversos argumentos
-//TODO não encontra registros quando procurado por quaisquer outros meios
-//além da pk
 void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
  						Ir* icategory, Isf* iprice, int* ncat){
 	int opBusca = 0;
@@ -808,7 +796,7 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 			Ip* aux;
 			aux = busca_primary(iprimary, chavePrim, nregistros);
 
-			if(aux){
+			if(aux && aux->rrn != -1){
 				// temp = recuperar_registro(aux->rrn);
 				// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
 				//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
@@ -944,6 +932,7 @@ void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* ipric
 	Ip* tempbrand;
 	Ip* tempprice;
 	char cat[TAM_CATEGORIA];
+	int print = 0;
 
 	scanf("%d%*c", &opLista);
 
@@ -954,55 +943,54 @@ void listagens(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* ipric
 	switch(opLista){
 		case 1://lista por pk
 			for(int j = 0; j < nregistros; j++){
-				if(iprimary[j].rrn != -1){
-					exibir_registro(iprimary[j].rrn, 0);
-					if(j != nregistros - 1)
-						printf("\n");
-				}
-				else
-					break;
+				if(print == 1 && j != nregistros -1)
+					printf("\n");
+				exibir_registro(iprimary[j].rrn, 0);
+				print = 1;
 			}
-
 		break;
 		case 2://lista por categoria
-		scanf("%[^\n]%*c", cat);
-		aux = NULL;
-		for(int i = 0; i < ncat; i++){
-			if(strcmp(icategory[i].cat, cat) == 0){
-				aux = icategory[i].lista;
-			}while(aux != NULL){
-				temp = lsearch_iprimary(iprimary, aux->pk, nregistros);
-				if(temp->rrn != -1 && temp){
-					exibir_registro(temp->rrn, 0);
+			scanf("%[^\n]%*c", cat);
+			aux = NULL;
+
+			for(int i = 0; i < ncat; i++){
+				if(strcmp(icategory[i].cat, cat) == 0){
+					aux = icategory[i].lista;
+				}while(aux != NULL){
+					temp = lsearch_iprimary(iprimary, aux->pk, nregistros);
+					if(temp){
+						if(print == 1 && aux->prox)
+							printf("\n");
+						exibir_registro(temp->rrn, 0);
+						print = 1;
+					}
+					aux = aux->prox;
 				}
-				aux = aux->prox;
-			}if(i != nregistros - 1 && aux)
-				printf("\n");
-		}
+			}
 		break;
 		case 3://listar por marca em ordem alfabética
+			print = 0;
 			for(int j = 0; j < nregistros; j++){
-				tempbrand = lsearch_iprimary(iprimary, ibrand[j].pk, nregistros);
-				if(tempbrand->rrn != -1){
-					exibir_registro(tempbrand->rrn, 0);
-					if(j != nregistros - 1 && tempbrand)
-						printf("\n");
-				}
-				else
-					break;
+					tempbrand = lsearch_iprimary(iprimary, ibrand[j].pk, nregistros);
+					if(tempbrand){
+						if(print == 1 && j != nregistros -1)
+							printf("\n");
+						exibir_registro(tempbrand->rrn, 0);
+						print = 1;
+					}
 			}
 		break;
 		case 4://listar por preço com desconto aplicado
-		for(int j = 0; j < nregistros; j++){
-			tempprice = lsearch_iprimary(iprimary, iprice[j].pk, nregistros);
-			if(tempprice->rrn != -1){
-				exibir_registro(tempprice->rrn, 1);
-				if(j != nregistros - 1 && tempprice)
-					printf("\n");
+			print = 0;
+			for(int j = 0; j < nregistros; j++){
+				tempprice = lsearch_iprimary(iprimary, iprice[j].pk, nregistros);
+				if(tempprice){
+					if(print == 1 && j != nregistros -1)
+						printf("\n");
+					exibir_registro(tempprice->rrn, 1);
+					print = 1;
+				}
 			}
-			else
-				break;
-		}
 		break;
 		default:
 		break;
@@ -1042,19 +1030,27 @@ void libera_icategory(Ir* icategory, int* ncat){
 void liberar_espaco(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* iprice, int* nregistros, int* ncat){
 	char* p = ARQUIVO;
 	char arquivoAux[TAM_ARQUIVO];
+	int deslocamento = 0, alterou = 0, j = 0;
 
-	for(int i = 0; *p != '\0' && p != NULL; i++){
-		if(*p != '*' && *(p + 1) != '|'){
-			arquivoAux[i] = *p;
+	printf("hy");
+	for(int i = 0;p[i] != '\0'; i++){
+		if(p[i] != '*' && p[i + 1] != '|'){
+			arquivoAux[j] = p[i];
+			j++;
 		}else{
+			alterou = 1;
 			p += 192;
 		}
 	}
-	criar_iprimary(iprimary, nregistros);
-	criar_iproduct(iprimary, iproduct, nregistros);
-	criar_ibrand(iprimary, ibrand, nregistros);
-	criar_icategory(iprimary, icategory, nregistros, ncat);
-	criar_iprice(iprimary, iprice, nregistros);
+	if(alterou == 1){
+		//TODO decrementar nregistros antes ou depois de refazer os indices?
+		*nregistros--;
+		criar_iprimary(iprimary, nregistros);
+		criar_iproduct(iprimary, iproduct, nregistros);
+		criar_ibrand(iprimary, ibrand, nregistros);
+		criar_icategory(iprimary, icategory, nregistros, ncat);
+		criar_iprice(iprimary, iprice, nregistros);
+	}
 }
 
 //Após conversar com alguns alunos que já concluíram esta disciplina,
