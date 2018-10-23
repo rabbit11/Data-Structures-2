@@ -544,8 +544,8 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 		qsort(indice_primario, *nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
 
 		//print do indice primario para teste
-		 for(int j = 0; j < *nregistros; j++)
-		 	printf("chave primaria:%s / RRN: %d\n", indice_primario[j].pk, indice_primario[j].rrn);
+		 // for(int j = 0; j < *nregistros; j++)
+		 // 	printf("chave primaria:%s / RRN: %d\n", indice_primario[j].pk, indice_primario[j].rrn);
 	}
 
 }
@@ -633,17 +633,19 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 			Ir* findrepetida = lsearch_icategory(icategory, *ncat, p);
 			if(findrepetida){
 				ll* percorre = findrepetida->lista;
-				//recebo o nó raiz daquela posicao no vetor
-				ll* novo = (ll*)malloc(sizeof(ll));
+				ll* novo = (ll*)calloc(sizeof(ll), 1);
 				novo->prox = NULL;
-				ll* aux2 = NULL;
 				strcpy(novo->pk, aux.pk);
+				ll* aux2 = NULL;
 
+				//inserindo na primeira posicao
 				if(strcmp(aux.pk, percorre->pk) < 0){
 					novo->prox = findrepetida->lista;
 					findrepetida->lista = novo;
+				//inserindo como segundo elemento da lista
 				}if(strcmp(aux.pk, percorre->pk) > 0 && percorre->prox == NULL){
 					percorre->prox = novo;
+				//inserindo nas demais posicoes
 				}else{
 					aux2 = percorre;
 					percorre = percorre->prox;
@@ -656,6 +658,7 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 						}
 						aux2 = percorre;
 						percorre = percorre->prox;
+					//inserindo na ultima posicao
 					}if(inserido == 0){
 						if(strcmp(aux.pk, percorre->pk) < 0){
 							aux2->prox = novo;
@@ -665,16 +668,15 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 						}
 					}
 				}
-			//insercao em nova categoria
+			//insercao em nova categoria com ncat > 0
 			}else{
 				strcpy(icategory[*ncat].cat, p);
-				ll* novo = (ll*)malloc(sizeof(ll));
+				ll* novo = (ll*)calloc(sizeof(ll), 1);
 				novo->prox = NULL;
 				icategory[*ncat].lista = novo;
 				*ncat += 1;
 			}
-			//se nao, insere a nova categoria ao vet de categorias e inicia
-			//a lista dentro do mesmo
+		//insercao em nova categoria com ncat == 0
 		}else{
 			strcpy(icategory[*ncat].cat, p);
 			ll* novo = (ll*)malloc(sizeof(ll));
@@ -777,6 +779,7 @@ int compare_categoria_busca(const void* p1, const void* p2){
    }
 }
 //busca um registro utilizando diversos argumentos
+//TODO fix retorno de produtos de mesma categoria/nome
 void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
  						Ir* icategory, Isf* iprice, int* ncat){
 	int opBusca = 0;
@@ -796,7 +799,7 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 
 			Produto temp;
 			Ip* aux;
-			aux = busca_primary(iprimary, chavePrim, nregistros);
+			aux = lsearch_iprimary(iprimary, chavePrim, *nregistros);
 
 			if(aux && aux->rrn != -1){
 				// temp = recuperar_registro(aux->rrn);
@@ -811,28 +814,27 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 
 		case 2://busca pelo nome do produto
 			scanf("%[^\n]%*c", chaveNome);
-			//TODO BUSCA POR NOME, MARCA E CATEGORIA NAO RETORNAM NADA
 			Is* aux2;
 			aux2 = lsearch_iproduct(iproduct, *nregistros, chaveNome);
 			//TODO devo fazer -sizeof(Is) ou -1?
 			if(aux2){
 				Ip* prim;
-				prim = busca_primary(iprimary, aux2->pk, nregistros);
+				prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
 				// temp = recuperar_registro(prim->rrn);
 				// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
 				// temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
 				exibir_registro(prim->rrn, 0);
 
 				//imprimindo os produtos de mesmo nome
-				while((aux2 - 1) && ((aux2 - 1)->string == aux2->string)){
-					prim = busca_primary(iprimary, aux2->pk, nregistros);
+				while((aux2 - sizeof(Is)) && ((aux2 - sizeof(Is))->string == aux2->string)){
+					prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
 					// temp = recuperar_registro(prim->rrn);
 					// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
 					//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
 					exibir_registro(prim->rrn, 0);
 				}
-				while((aux2 + 1) && ((aux2 + 1)->string == aux2->string)){
-					prim = busca_primary(iprimary, aux2->pk, nregistros);
+				while((aux2 + sizeof(Is)) && ((aux2 + sizeof(Is))->string == aux2->string)){
+					prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
 					// temp = recuperar_registro(prim->rrn);
 					// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
 					//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
@@ -866,7 +868,7 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 						// if(temp->string == chaveMarca){
 							// Ip* prim = (Ip*)bsearch(percorre->pk, iprimary, *nregistros,
 							//  			sizeof(Ip), (int(*)(const void*, const void*))strcmp);
-							Ip* prim = busca_primary(iprimary, percorre->pk, nregistros);
+							Ip* prim = lsearch_iprimary(iprimary, percorre->pk, *nregistros);
 							exibir_registro(prim->rrn, 0);
 						// }
 						auxPercorre = auxPercorre->prox;
@@ -1045,7 +1047,6 @@ void liberar_espaco(Ip* iprimary, Is* iproduct, Is* ibrand, Ir* icategory, Isf* 
 	}
 	arquivoAux[j] = '\0';
 	strcpy(ARQUIVO, arquivoAux);
-	puts(ARQUIVO);
 
 	if(alterou > 0){
 		*nregistros = *nregistros - alterou;
