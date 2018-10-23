@@ -193,6 +193,8 @@ Ir* lsearch_icategory(Ir* icategory, int ncat, char* categoria);
 ll* lsearch_icategory_pk(Ir* listaCategoria, char* chave);
 //busca linear no indice iproduct
 Is* lsearch_iproduct(Is* iproduct, int nregistros, char* nome);
+//busca pelos semelhantes em iproduct
+Is* lsearch_iproduct_semelhantes(Is* iproduct, int nregistros, char* chaveNome);
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
@@ -811,7 +813,7 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 				return;
 			}
 		break;
-
+		//TODO busca pelo nome produto
 		case 2://busca pelo nome do produto
 			scanf("%[^\n]%*c", chaveNome);
 			Is* aux2;
@@ -825,26 +827,44 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 				// temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
 				exibir_registro(prim->rrn, 0);
 
-				//imprimindo os produtos de mesmo nome
-				while((aux2 - 1) && ((aux2 - 1)->string == aux2->string)){
-					prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
-					// temp = recuperar_registro(prim->rrn);
-					// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
-					//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
-					exibir_registro(prim->rrn, 0);
+				Is* semelhantes;
+				semelhantes = lsearch_iproduct_semelhantes(iproduct, nregistros, aux2->pk);
+
+				int j = 0;
+				while(semelhantes[j]){
+					if(semelhantes[j] != aux2->pk){
+						prim = lsearch_iprimary(iprimary, semelhantes[j].pk, *nregistros);
+						exibir_registro(prim->rrn, 0);
+					}
 				}
-				while((aux2 + 1) && ((aux2 + 1)->string == aux2->string)){
-					prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
-					// temp = recuperar_registro(prim->rrn);
-					// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
-					//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
-					exibir_registro(prim->rrn, 0);
-				 }
+				//imprimindo os produtos de mesmo nome
+				// Is* temp = aux2;
+				// while(temp){
+				// 	if((temp->string) == aux2->string){
+				// 		prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
+				// 		// temp = recuperar_registro(prim->rrn);
+				// 		// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
+				// 		//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
+				// 		exibir_registro(prim->rrn, 0);
+				// 	}
+				// 	temp--;
+				// }
+				// temp = aux2;
+				// while(temp){
+				// 	if((temp->string) == aux2->string){
+				// 		prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
+				// 		// temp = recuperar_registro(prim->rrn);
+				// 		// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
+				// 		//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
+				// 		exibir_registro(prim->rrn, 0);
+				// 	}
+				// 	temp++;
+				// }
 			 }else{
 				 printf(REGISTRO_N_ENCONTRADO);
 			 }
 		break;
-		//TODO busca por categoria ainda não funciona
+		//TODO printa o mesmo termo mais de uma vez
 		case 3://busca pela marca e categoria
 			scanf("%[^\n]%*c", chaveMarca);
 			scanf("%[^\n]%*c", chaveCategoria);
@@ -1113,6 +1133,17 @@ Is* lsearch_iproduct(Is* iproduct, int nregistros, char* nome){
 		}
 	}
 	return NULL;
+}
+//busca pelos semelhantes em iproduct
+Is* lsearch_iproduct_semelhantes(Is*iproduct, int nregistros, char*nome){
+	Is saida[nregistros];
+	int j = 0;
+	for(int i =0; i <nregistros;i++){
+		if(strcmp(iproduct[i].string, nome) == 0){
+			saida[j] = iproduct[i];
+			j++;
+		}
+	}
 }
 // ==========================================================================
 
