@@ -35,11 +35,11 @@
 
 /* Saídas para o usuario */
 #define OPCAO_INVALIDA 				"Opcao invalida!\n"
-#define MEMORIA_INSUFICIENTE 		"Memoria insuficiente!"
+#define MEMORIA_INSUFICIENTE 		"Memoria insuficiente!\n"
 #define REGISTRO_N_ENCONTRADO 		"Registro(s) nao encontrado!\n"
 #define CAMPO_INVALIDO 				"Campo invalido! Informe novamente.\n"
 #define ERRO_PK_REPETIDA			"ERRO: Ja existe um registro com a chave primaria: %s.\n"
-#define ARQUIVO_VAZIO 				"Arquivo vazio!"
+#define ARQUIVO_VAZIO 				"Arquivo vazio!\n"
 #define INICIO_BUSCA 		 		"**********************BUSCAR**********************\n"
 #define INICIO_LISTAGEM  			"**********************LISTAR**********************\n"
 #define INICIO_ALTERACAO 			"**********************ALTERAR*********************\n"
@@ -193,6 +193,8 @@ Ir* lsearch_icategory(Ir* icategory, int ncat, char* categoria);
 ll* lsearch_icategory_pk(Ir* listaCategoria, char* chave);
 //busca linear no indice iproduct
 Is* lsearch_iproduct(Is* iproduct, int nregistros, char* nome);
+//busca linear no indice ibrand pela pk
+Is* lsearch_ibrand_pk(Is* ibrand, int nregistros, char* pk);
 //busca pelos semelhantes em iproduct
 Is* lsearch_iproduct_semelhantes(Is* iproduct, int nregistros, char* chaveNome);
 /* Realiza os scanfs na struct Produto */
@@ -862,8 +864,8 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 					Is* temp;
 					ll* auxPercorre = percorre;
 					while(auxPercorre){
-						temp = lsearch_iproduct(ibrand, *nregistros, auxPercorre->pk);
-						if(strcmp(temp->string, auxMarca->string) == 0){
+						temp = lsearch_ibrand_pk(ibrand, *nregistros, auxPercorre->pk);
+						if(temp && strcmp(temp->string, auxMarca->string) == 0){
 							Ip* prim = lsearch_iprimary(iprimary, percorre->pk, *nregistros);
 							if(prim)
 								exibir_registro(prim->rrn, 0);
@@ -1107,6 +1109,15 @@ Is* lsearch_iproduct(Is* iproduct, int nregistros, char* nome){
 	for(int i =0; i <nregistros;i++){
 		if(strcmp(iproduct[i].string, nome) == 0){
 			return &iproduct[i];
+		}
+	}
+	return NULL;
+}
+//busca linear pela pk no indice ibrand
+Is* lsearch_ibrand_pk(Is* ibrand, int nregistros, char* pk){
+	for(int i =0; i <nregistros;i++){
+		if(strcmp(ibrand[i].pk, pk) == 0){
+			return &ibrand[i];
 		}
 	}
 	return NULL;
