@@ -822,21 +822,18 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 				Ip* prim;
 				prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
 				if(prim){
-					printf("PINTO PENIS 0 %s\n", prim->pk);
 					exibir_registro(prim->rrn, 0);
 					//imprimindo os produtos de mesmo nome
-					Is* temp = aux2;
+					Is* temp = aux2 - 1;
 					while(temp && strcmp(temp->string, chaveNome) == 0){
-						printf("PINTO PENIS 1 %s\n", temp->pk);
 						prim = lsearch_iprimary(iprimary, temp->pk, *nregistros);
 						if(prim){
 							exibir_registro(prim->rrn, 0);
 						}
 						temp = temp - 1;
 					}
-					temp = aux2;
+					temp = aux2 + 1;
 					while(temp && strcmp(temp->string, chaveNome) == 0){
-						printf("PINTO PENIS %s\n", temp->pk);
 						prim = lsearch_iprimary(iprimary, temp->pk, *nregistros);
 						if(prim){
 							exibir_registro(prim->rrn, 0);
@@ -859,22 +856,18 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 			auxMarca = lsearch_iproduct(ibrand, *nregistros, chaveMarca);
 			auxCategoria = lsearch_icategory(icategory, *ncat, chaveCategoria);
 			if(auxMarca && auxCategoria){
-				// ll* percorre= (ll*)bsearch(auxMarca->pk, auxCategoria, *ncat, sizeof(Ir),
-				// 					(int(*)(const void*, const void*))strcmp);
 				//vejo se o pk correspondente a marca se encontra naquela categoria
 				ll* percorre = lsearch_icategory_pk(auxCategoria, auxMarca->pk);
 				if(percorre){
 					Is* temp;
 					ll* auxPercorre = percorre;
 					while(auxPercorre){
-						// temp = (Is*)bsearch(percorre->pk, ibrand, *nregistros, sizeof(Is),compare_marca);
-						// temp = lsearch_iproduct(ibrand, *nregistros, auxMarca->string);
-						// if(temp->string == chaveMarca){
-							// Ip* prim = (Ip*)bsearch(percorre->pk, iprimary, *nregistros,
-							//  			sizeof(Ip), (int(*)(const void*, const void*))strcmp);
+						temp = lsearch_iproduct(ibrand, *nregistros, auxPercorre->pk);
+						if(strcmp(temp->string, auxMarca->string) == 0){
 							Ip* prim = lsearch_iprimary(iprimary, percorre->pk, *nregistros);
-							exibir_registro(prim->rrn, 0);
-						// }
+							if(prim)
+								exibir_registro(prim->rrn, 0);
+						}
 						auxPercorre = auxPercorre->prox;
 					}
 				}else{
@@ -1153,13 +1146,9 @@ int exibir_registro(int rrn, char com_desconto)
 	{
 		sscanf(j.desconto,"%d",&desconto);
 		sscanf(j.preco,"%f",&preco);
-		//passos de antes causavam erro de precisão, por dica dos monitores
-		//acabei usando estes passos para tentar lidar com a imprecisao
-		preco = (preco * (100-desconto))/ 100.0;
-		preco = preco * 100;
-		preco = ((int)preco/(float)100);
+		preco = preco *  (100-desconto);
+		preco = ((int) preco)/ (float) 100 ;
 		printf("%07.2f\n",  preco);
-
 	}
 	strcpy(categorias, j.categoria);
 
