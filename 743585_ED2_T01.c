@@ -649,7 +649,6 @@ void insere_icategory(Ip* iprimary, Ir* icategory, int* nregistros, int* ncat, P
 					percorre->prox = novo;
 				//inserindo nas demais posicoes
 				}else{
-					// printf("AI MEU DEUS DO CÉU\n");
 					aux2 = percorre;
 					percorre = percorre->prox;
 					while(percorre->prox != NULL){
@@ -822,44 +821,29 @@ void busca_registro(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 			if(aux2){
 				Ip* prim;
 				prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
-				// temp = recuperar_registro(prim->rrn);
-				// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
-				// temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
-				exibir_registro(prim->rrn, 0);
-
-				Is* semelhantes;
-				semelhantes = lsearch_iproduct_semelhantes(iproduct, nregistros, aux2->pk);
-
-				int j = 0;
-				while(semelhantes[j]){
-					if(semelhantes[j] != aux2->pk){
-						prim = lsearch_iprimary(iprimary, semelhantes[j].pk, *nregistros);
-						exibir_registro(prim->rrn, 0);
+				if(prim){
+					printf("PINTO PENIS 0 %s\n", prim->pk);
+					exibir_registro(prim->rrn, 0);
+					//imprimindo os produtos de mesmo nome
+					Is* temp = aux2;
+					while(temp && strcmp(temp->string, chaveNome) == 0){
+						printf("PINTO PENIS 1 %s\n", temp->pk);
+						prim = lsearch_iprimary(iprimary, temp->pk, *nregistros);
+						if(prim){
+							exibir_registro(prim->rrn, 0);
+						}
+						temp = temp - 1;
+					}
+					temp = aux2;
+					while(temp && strcmp(temp->string, chaveNome) == 0){
+						printf("PINTO PENIS %s\n", temp->pk);
+						prim = lsearch_iprimary(iprimary, temp->pk, *nregistros);
+						if(prim){
+							exibir_registro(prim->rrn, 0);
+						}
+						temp = temp + 1;
 					}
 				}
-				//imprimindo os produtos de mesmo nome
-				// Is* temp = aux2;
-				// while(temp){
-				// 	if((temp->string) == aux2->string){
-				// 		prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
-				// 		// temp = recuperar_registro(prim->rrn);
-				// 		// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
-				// 		//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
-				// 		exibir_registro(prim->rrn, 0);
-				// 	}
-				// 	temp--;
-				// }
-				// temp = aux2;
-				// while(temp){
-				// 	if((temp->string) == aux2->string){
-				// 		prim = lsearch_iprimary(iprimary, aux2->pk, *nregistros);
-				// 		// temp = recuperar_registro(prim->rrn);
-				// 		// printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", temp.pk, temp.nome,
-				// 		//  temp.marca, temp.data, temp.ano, temp.preco, temp.desconto, temp.categoria);
-				// 		exibir_registro(prim->rrn, 0);
-				// 	}
-				// 	temp++;
-				// }
 			 }else{
 				 printf(REGISTRO_N_ENCONTRADO);
 			 }
