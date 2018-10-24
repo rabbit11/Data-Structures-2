@@ -369,7 +369,35 @@ void cadastrar_produto(Ip *iprimary, int* nregistros, Is* iproduct, Is* ibrand,
 	Ip* removido = lsearch_iprimary(iprimary, novo.pk, *nregistros);
 	//TODO acabei de alterar o rrn
 	if(removido && removido->rrn == -1){
-		iprimary[*nregistros].rrn = (strlen(ARQUIVO) / TAM_REGISTRO) - 1;
+		removido->rrn = *nregistros;
+		//TODO TROCAR AS COISAS POR REMOVIDO
+		//inserindo no indice secundario iproduct
+		strcpy(iproduct[*nregistros].string, novo.nome);
+		strcpy(iproduct[*nregistros].pk, iprimary[*nregistros].pk);
+
+		//inserindo no indice secundario ibrand
+		strcpy(ibrand[*nregistros].string, novo.marca);
+		strcpy(ibrand[*nregistros].pk, iprimary[*nregistros].pk);
+
+		//inserindo no índice secundario icategory
+		insere_icategory(iprimary, icategory, nregistros, ncat, novo);
+
+		//inserindo no indice secundario iprice
+		float desconto = atof(novo.desconto);
+		float preco = atof(novo.preco);
+		preco = (preco * (100-desconto))/ 100.0;
+		preco = preco * 100;
+		preco = ((int)preco/(float)100);
+		iprice[*nregistros].price = (float)preco;
+		strcpy(iprice[*nregistros].pk, novo.pk);
+
+		*nregistros+= 1;
+
+		qsort(iprimary, *nregistros, sizeof(Ip), (int(*)(const void*, const void*))strcmp);
+		qsort(iproduct, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_nome);
+		qsort(ibrand, *nregistros, sizeof(Is), (int(*)(const void*, const void*))compare_marca);
+		qsort(icategory, *ncat, sizeof(Ir), (int(*)(const void*, const void*))compare_categoria);
+		qsort(iprice, *nregistros, sizeof(Isf), (int(*)(const void*, const void*))compare_preco);
 	}else{
 		//inserindo o produto no indice primario
 		iprimary[*nregistros].rrn = *nregistros;
