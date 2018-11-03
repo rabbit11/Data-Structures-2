@@ -169,20 +169,21 @@ void libera_no(void *node, char ip);
 /* Atualiza os dois índices com o novo registro inserido */
 void inserir_registro_indices(Indice *iprimary, Indice *ibrand, Produto j);
 
+//*****************funcoes referentes ao pseudo codigo de insercao em arvore b
+void* inserir_Btree_is_aux(Indice* ibrand, Produto product);
+void* inserir_Btree_ip_aux(Indice* iprimary, Produto product);
 node_Btree_ip* divide_no_ip(Indice* x, Produto product, int fdireito);
+node_Btree_is* divide_no_is(Indice* x, Produto product, int fdireito);
+//*****************funcoes referentes ao pseudo codigo de insercao em arvore b
 
-node_Btree_is* divide_no_is(Indice x, char* chaveK, int fdireito);
+//funcao verifica se a chave passada como parametro ja foi inserida no indice primario
+int verifica_chave(char* chave, Indice* iprimary);
 
 Produto recuperar_registro(int rrn);
 //busca determinada chave no indice ip
 int busca_ip(int raiz, char* pk);
 /* Exibe o jogo */
 int exibir_registro(int rrn);
-
-//insercao na arvore b, indice ip (pseudo codigo de insercao em arvore b)
-void* inserir_Btree_ip_aux(Indice* iprimary, Produto product);
-//insercao na arvore b, indice is (pseudo codigo de insercao em arvore b)
-void* inserir_Btree_is_aux(Indice* ibrand, Produto product);
 
 int main()
 {
@@ -217,10 +218,10 @@ int main()
 			break;
 		case 2: /* Alterar o desconto de um Produto */
 			printf(INICIO_ALTERACAO);
-			if (alterar(iprimary))
-				printf(SUCESSO);
-			else
-				printf(FALHA);
+			// if (alterar(iprimary))
+			// 	printf(SUCESSO);
+			// else
+			// 	printf(FALHA);
 			break;
 		case 3: /* Buscar um Produto */
 			printf(INICIO_BUSCA);
@@ -228,7 +229,7 @@ int main()
 			break;
 		case 4: /* Listar todos os Produtos */
 			printf(INICIO_LISTAGEM);
-			listar(iprimary, ibrand);
+			//listar(iprimary, ibrand);
 			break;
 		case 5: /* Imprimir o arquivo de dados */
 			printf(INICIO_ARQUIVO);
@@ -285,30 +286,33 @@ int main()
 	 if(ip == 'p'){
 		 node_Btree_ip* aux = (node_Btree_ip*)salvar;
 		 //TODO nao esquecer de alterar o rrn de salvar
+		 //TODO CONTABILIZACAO DO NUMERO DE CHAVES ESTA ERRADA
 		 //movimentando ponteiro para ponto do arquivo onde ocorrerá a escrita
-		 char* p = ARQUIVO_IP + (tamanho_registro_ip) * (nregistrosip);
+		 char* p = ARQUIVO_IP + ((tamanho_registro_ip) * (nregistrosip));
 		 int tempChaves = 0;
 		 tempChaves = aux->num_chaves;
 		 //verificando se é necessario completar com # os espaços em branco
 		 int hash = 0;
-		 char* tempHash = NULL;
+		 char tempHash[TAM_STRING_INDICE];
+		 char* ptempHash = tempHash;
 		 if(aux->num_chaves < ordem_ip - 1){
 			 hash = (ordem_ip - 1) - aux->num_chaves;
 			 hash = hash * 14;
 			 //passando pk e rrn das chaves para um auxiliar
 			 for(int i = 0; i < aux->num_chaves; i++){
 				 sprintf(tempHash, "%s", aux->chave[i].pk);
-				 tempHash += 10;
+				 ptempHash += 10;
 				 for(int j = 0; j < 4;j++){
-					 tempHash[i + j] = aux->chave[j].rrn;
-					 tempHash += 4;
+					 ptempHash[i + j] = aux->chave[j].rrn;
+					 ptempHash += 4;
 				 }
 			 }
 			 //colocando o numero de # necessarios em uma string auxiliars
 			 for(int i = 0; i < hash; i++){
-				 tempHash[i] = '#';
-				 tempHash++;
+				 ptempHash[i] = '#';
+				 ptempHash++;
 			 }
+			 *ptempHash = '\0';
 	 	}
 		//verificando se e necessario completar com * o espaco dos descendentes
 		//daquele node
@@ -318,7 +322,7 @@ int main()
 				filhos++;
 			}
 		}
-		char* tempFilhos = NULL;
+		char tempFilhos[ordem_ip];
 		if(filhos){
 			int i;
 			for(i = 0; i < filhos * (ordem_ip) * 3; i++){
@@ -329,15 +333,18 @@ int main()
 					tempFilhos[i] = '*';
 				}
 			}
+			tempFilhos[i] = '\0';
 		}else{
-			for(int j = 0; j < ordem_ip * 3;j++){
+			int j;
+			for(j = 0; j < ordem_ip * 3;j++){
 				tempFilhos[j] = '*';
 			}
+			tempFilhos[j] = '\0';
 		}
 		sprintf(p,"%d%s%d%s", tempChaves, tempHash, aux->folha, tempFilhos);
-		strcpy(ARQUIVO_IP, p);
+		// strcpy(ARQUIVO_IP, p);
 	 }
-	 else if('s'){
+	 else if(ip == 's'){
 		node_Btree_is* aux = (node_Btree_is*)salvar;
 		char* p = ARQUIVO_IS + (tamanho_registro_is) * (nregistrosis);
 
@@ -345,19 +352,21 @@ int main()
 		tempChaves = aux->num_chaves;
 
 		int hash = 0;
-		char* tempHash = NULL;
+		char tempHash[TAM_STRING_INDICE];
+		char* ptempHash = tempHash;
 		//passando pk e strings das chaves para um auxiliar
 		for(int i = 0; i < aux->num_chaves; i++){
-			sprintf(tempHash, "%s%s", aux->chave[i].pk, aux->chave[i].string);
-			tempHash += 10 + strlen(aux->chave[i].string);
+			sprintf(ptempHash, "%s%s", aux->chave[i].pk, aux->chave[i].string);
+			ptempHash += 10 + strlen(aux->chave[i].string);
 			hash = ((ordem_is - 1) * 10 + 101) -  strlen(aux->chave[i].string);
 			if(hash){
 				//colocando o numero de # necessarios em uma string auxiliars
 				for(int j = 0; j < hash; j++){
-					sprintf(tempHash, "%d", '#');
-					tempHash++;
+					sprintf(ptempHash, "%c", '#');
+					ptempHash++;
 				}
 			}
+			*ptempHash = '\0';
 	   }
 	   //verificando se e necessario completar com * o espaco dos descendentes
 	   //daquele node
@@ -367,7 +376,8 @@ int main()
 			   filhos++;
 		   }
 	   }
-	   char* tempFilhos = NULL;
+	   printf("%d\n", filhos);
+	   char tempFilhos[ordem_is];
 	   if(filhos){
 		   int i;
 		   for(i = 0; i < filhos * (ordem_ip) * 3; i++){
@@ -378,17 +388,28 @@ int main()
 				   tempFilhos[i] = '*';
 			   }
 		   }
+		   tempFilhos[i] = '\0';
 	   }else{
-		   for(int j = 0; j < ordem_ip * 3;j++){
+		   int j;
+		   for(j = 0; j < ordem_ip * 3;j++){
 			   tempFilhos[j] = '*';
 		   }
+		   tempFilhos[j] = '\0';
 	   }
-	   sprintf(p,"%d%s%d%s", tempChaves, tempHash, aux->folha, tempFilhos);
-	   strcpy(ARQUIVO_IS, p);
+	   //TODO consertar num_chaves pois esta de 1 byte e deve ser 3
+	   sprintf(p,"%d%s%c%s", tempChaves, tempHash, aux->folha, tempFilhos);
+	   // strcpy(ARQUIVO_IS, p);
+	   printf("%s\n", ARQUIVO_IS);
+	   //TODO erro da depois do printf ?????
 	 }
  }
  /*Lê um nó do arquivo de índice e retorna na estrutura*/
  void *read_btree(int rrn, char ip){
+	 //se a arvore estiver vazia, retorna NULL
+	 //TODO necessario esse primeiro if? dava segfault sem ele
+	 if(rrn == -1){
+		 return NULL;
+	 }
 	 if(ip == 'p'){
 		 char* p = ARQUIVO_IP + (rrn * tamanho_registro_ip);
 		 node_Btree_ip* x = (node_Btree_ip*)criar_no('p');
@@ -401,8 +422,6 @@ int main()
 		 }
 
 		 x->num_chaves = (int)atoi(nchaves);
-
-		 //TODO PARTE DA CHAVE ESTÁ ERRADA
 		 //obtendo as chaves presentes naquele no
 		 int z = 0, posEscrita = 0;
 		 for(int j = 0; j < x->num_chaves * (10 + 4); j++){
@@ -490,16 +509,22 @@ int main()
 	 if(ip == 'p'){
 		 node_Btree_ip* novoIp = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
 		 novoIp->num_chaves = 0;
-		 novoIp->chave = (Chave_ip*)malloc((ordem_ip) - 1 * sizeof(Chave_ip));
-		 novoIp->desc = (int*)malloc(ordem_ip * sizeof(int));
+		 novoIp->chave = (Chave_ip*)malloc((ordem_ip - 1) * sizeof(Chave_ip));
 		 novoIp->folha = 'F';
+		 novoIp->desc = (int*)malloc(ordem_ip * sizeof(int));
+		 for(int i = 0; i < ordem_ip;i++){
+			 novoIp->desc[i] = -1;
+		 }
 		 return novoIp;
 	 }if(ip == 's'){
 		 node_Btree_is* novoIs = (node_Btree_is*)malloc(sizeof(node_Btree_is));
 		 novoIs->num_chaves = 0;
-		 novoIs->chave = (Chave_is*)malloc((ordem_is) - 1 * sizeof(Chave_is));
-		 novoIs->desc = (int*)malloc(ordem_is * sizeof(int));
+		 novoIs->chave = (Chave_is*)malloc((ordem_is - 1) * sizeof(Chave_is));
 		 novoIs->folha = 'F';
+		 novoIs->desc = (int*)malloc(ordem_is * sizeof(int));
+		 for(int i = 0; i < ordem_is;i++){
+			 novoIs->desc[i] = -1;
+		 }
 		 return novoIs;
 	 }else{
 		 return NULL;
@@ -537,7 +562,7 @@ int main()
 			nregistrosip++;
 		}
 	}
-	if(ibrand->raiz != -1){
+	if(ibrand->raiz == -1){
 		//rotina de insercao do novo nó no indice ibrand
 		node_Btree_is* novoIs = (node_Btree_is*)criar_no('s');
 		novoIs->num_chaves = 1;
@@ -547,6 +572,7 @@ int main()
 		ibrand->raiz = 0;
 		//escrita do novo no no arquivo de dados do indice ibrand
 		write_btree(novoIs, ibrand->raiz, 's');
+		printf("HENLO FREN\n");
 		nregistrosis++;
 	}else{//caso a árvore não esteja vazia, inserimos o novo nó na posicao correta
 		//rotina de insercao em Is (pseudo codigo de insercao)
@@ -596,14 +622,13 @@ int main()
 			 write_btree(x, iprimary->raiz, 'p');
 
 			 return NULL;
-
 		 	}
 			else{
-			 divide_no_ip(iprimary, product, NULL);
+			 divide_no_ip(iprimary, product, -1);
 		 	}
 		}
 		//caso o node encontrado nao seja uma folha
-		else{
+		else if(x->folha == 'N'){
 			i = x->num_chaves - 1;
 			//encontrando a posicao correta dentro do node
 			while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
@@ -621,6 +646,7 @@ int main()
 
 			if(x->num_chaves < ordem_ip - 1){
 				i = x->num_chaves;
+
 				while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
 					strcpy(x->chave[i + 1].pk, x->chave[i].pk);
 					x->desc[i + 2] = x->desc[i + 1];
@@ -641,6 +667,78 @@ int main()
 			return NULL;
 		}
 }
+//insercao na arvore b, indice is (pseudo codigo de insercao em arvore b)
+ void* inserir_Btree_is_aux(Indice* ibrand, Produto product){
+	//recupera o registro do arquivo de indice iprimary
+	node_Btree_is* x = (node_Btree_is*)read_btree(ibrand->raiz, 'p');
+	node_Btree_is*	node = (node_Btree_is*)malloc(sizeof(node_Btree_is));
+	int i;
+	//TODO dar free no "retorno"
+	//verifica se o no recuperado é folha
+	if(x->folha == 'F'){
+		//verifica se o numero de chaves alocada no nó é menor que o máximo
+		if(x->num_chaves < (ordem_ip - 1)){
+			//posiciona i na posicao do ultimo elemento daquele no
+			//(num_chaves - 1, para acessar a posicao correta, ex: 1 chave, esta
+			//se econtra na pos 0)
+			i = x->num_chaves - 1;
+			//encotrando a posicao correta para a insercao do novo node
+			while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
+				x->chave[i + 1] = x->chave[i];
+				i += -1;
+			}
+			//inserindo o novo no na posicao correta
+			strcpy(x->chave[i + 1].pk, product.pk);
+			x->num_chaves += 1;
+			strcpy(x->chave[i + 1].string, product.nome);
+			//escrevendo no nó na arvore
+			write_btree(x, ibrand->raiz, 's');
+
+			return NULL;
+		   }
+		   else{
+			divide_no_is(ibrand, product, -1);
+		   }
+	   }
+	   //caso o node encontrado nao seja uma folha
+	   else{
+		   i = x->num_chaves - 1;
+		   //encontrando a posicao correta dentro do node
+		   while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
+			   i = i - 1;
+		   }
+		   i = i + 1;
+		   Indice* promo = (Indice *)malloc(sizeof(Indice));
+		   promo->raiz = x->desc[i];
+		   node = (node_Btree_is*)inserir_Btree_is_aux(promo, product);
+	   }
+	   //caso a promocao tenha ocorrido
+	   if(node){
+		   //TODO como passar os parâmetros de node para o produto?
+		   strcpy(product.pk, node->chave[0].pk);
+
+		   if(x->num_chaves < ordem_ip - 1){
+			   i = x->num_chaves;
+			   while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
+				   strcpy(x->chave[i + 1].pk, x->chave[i].pk);
+				   x->desc[i + 2] = x->desc[i + 1];
+				   i = i - 1;
+			   }
+			   strcpy(x->chave[i + 1].string, node->chave[0].string);
+			   strcpy(x->chave[i + 1].pk, product.pk);
+			   //TODO COMO OBTER O FILHO DIREITO?
+			   x->desc[i + 2] = node->desc[0];
+			   x->num_chaves += 1;
+			   write_btree(x, ibrand->raiz, 's');
+
+			   return node;
+		   }else{
+			   return divide_no_is(ibrand, product, node->desc[0]);
+		   }
+	   }else{
+		   return NULL;
+	   }
+}
  node_Btree_ip* divide_no_ip(Indice* x, Produto product, int fdireito){
 	 //TODO CONFERIR
 	 //recupera-se a pagina x
@@ -657,7 +755,7 @@ int main()
 	 for(int j = y->num_chaves; i > 0; i--){
 		 if(!chave_alocada && strcmp(product.pk, node->chave[i].pk) > 0){
 			 strcpy(y->chave[j].pk, product.pk);
-			 if(fdireito){
+			 if(fdireito != -1){
 				 y->desc[j + 1] = node->desc[i + 1];
 				 chave_alocada = 1;
 		 	}else{
@@ -677,7 +775,7 @@ int main()
 			 i = i - 1;
 		 }
 		 strcpy(node->chave[i + 1].pk, product.pk);
-		 if(fdireito)
+		 if(fdireito != -1)
 		 	node->desc[i + 2] = fdireito;
 		else
 			node->desc[i + 2] = -1;
@@ -694,7 +792,7 @@ int main()
 
 	 return chave_promovida;
 }
- node_Btree_is* divide_no_is(Indice* x, Produto product, int* fdireito){
+ node_Btree_is* divide_no_is(Indice* x, Produto product, int fdireito){
 	//TODO CONFERIR
 	//recupera-se a pagina x
 	node_Btree_is* node = (node_Btree_is*)read_btree(x->raiz, 's');
@@ -713,7 +811,7 @@ int main()
 		if(!chave_alocada && strcmp(product.pk, node->chave[i].pk) > 0){
 			strcpy(y->chave[j].pk, product.pk);
 			sprintf(y->chave[j].string, "%s$%s", product.marca, product.nome);
-			if(fdireito){
+			if(fdireito != -1){
 				y->desc[j + 1] = node->desc[i + 1];
 				chave_alocada = 1;
 		   }else{
@@ -734,8 +832,8 @@ int main()
 		}
 		strcpy(node->chave[i + 1].pk, product.pk);
 		sprintf(y->chave[i + 1].string, "%s$%s", product.marca, product.nome);
-		if(fdireito){
-			node->desc[i + 2] = *fdireito;
+		if(fdireito != -1){
+			node->desc[i + 2] = fdireito;
 		}else{
 			node->desc[i + 2] = -1;
 		}
@@ -758,7 +856,7 @@ int main()
 	 int opBusca;
 	 char* chaveBusca;
 
-	 scanf("%d%*c", opBusca);
+	 scanf("%d%*c", &opBusca);
 
 	 switch(opBusca){
 		 case 1://busca pela pk
@@ -773,8 +871,11 @@ int main()
 	 }
 
  }
-
+//efetua busca no indice iprimary
  int busca_ip(int raiz, char* pk){
+	 if(raiz == -1){
+		 return 0;
+	 }
  	node_Btree_ip* x = (node_Btree_ip*)read_btree(raiz, 'p');
  	//TODO seria melhor retornar o nó ou sua posicao de alguma forma?
  	// node_Btree_ip* retorno;
@@ -795,8 +896,11 @@ int main()
  		return busca_ip(x->desc[i], pk);
  	}
  }
- //efetua busca no registro ibrand
+ //efetua busca no indice ibrand
  int busca_is(int raiz, char* nome){
+	 if(raiz){
+		 return 0;
+	 }
  	node_Btree_is* x = (node_Btree_is*)read_btree(raiz, 's');
  	//TODO seria melhor retornar o nó ou sua posicao de alguma forma?
  	// node_Btree_ip* retorno;
@@ -824,7 +928,6 @@ int carregar_arquivo()
 	scanf("%[^\n]\n", ARQUIVO);
 	return strlen(ARQUIVO) / TAM_REGISTRO;
 }
-
 //Gera uma chave primária com base no produto fornecido como parâmetro
 void gerarChave(Produto* p){
 	int i = 0;
@@ -907,10 +1010,19 @@ int exibir_registro(int rrn)
 
 	return 1;
 }
-
 //TODO devo desalocar todos os nós das arvores que eu usar?
 
-//funcoes de interacao com o usuario
+//verifica se a chave passada como parametro ja se encontra em ip
+int verifica_chave(char* chave, Indice* iprimary){
+	int foundIt = 0;
+	foundIt = busca_ip(iprimary->raiz, chave);
+	if(foundIt){
+		printf(ERRO_PK_REPETIDA, chave);
+		return 0;
+	}
+	return foundIt;
+}
+//********************funcoes de interacao com o usuario*************************************
 void cadastrar(Indice* iprimary, Indice* ibrand){
 	char temp[TAM_REGISTRO];
 	Produto novo;
@@ -926,8 +1038,8 @@ void cadastrar(Indice* iprimary, Indice* ibrand){
 	//gera uma chave para este novo produto
 	gerarChave(&novo);
 	//checa se a chave gerada já existia no sistema, se sim a função se encerra
-	int flagChave = verifica_chave(novo.pk, nregistros, iprimary)
-	if(!flagChave)
+	int flagChave = verifica_chave(novo.pk, iprimary);
+	if(flagChave)
 		return;
 	//imprime todos os dados do produto em uma string temporaria, para depois
 	//ser passada para o arquivo principal
@@ -947,24 +1059,7 @@ void cadastrar(Indice* iprimary, Indice* ibrand){
 	fimArquivo += 192;
 	*fimArquivo = '\0';
 
-	if(flagChave != -1){
-		//TODO flagChave tera o rrn do registro removido, devemo atualizalo pelo
-		//novo rrn ESSE RRN DEVE SER IGUAL AO nregistrosip E nregistrosis EM CADA INDICE?
-	}else{
-		//inserindo o produto no indice primario
-		inserir_registro_indices(iprimary, ibrand, novo);
-}
-//verifica se a chave passada como parametro ja se encontra em ip
-int verifica_chave(char* chave, int* nregistros, Ip* iprimary){
-	Ip* foundIt = NULL;
-	foundIt = lsearch_iprimary(iprimary, chave, *nregistros);
-	if(foundIt){
-		if(foundIt->rrn != -1){
-			printf(ERRO_PK_REPETIDA, chave);
-			return 0;
-		}else{
-			return //TODO RRN DA CHAVE REMOVIDA
-		}
-	}
-	return 1;
+	// printf("%s\n", ARQUIVO);
+	//inserindo o produto no indice primario
+	inserir_registro_indices(iprimary, ibrand, novo);
 }
