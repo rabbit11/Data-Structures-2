@@ -181,7 +181,9 @@ int verifica_chave(char* chave, Indice* iprimary);
 
 Produto recuperar_registro(int rrn);
 //busca determinada chave no indice ip
-int busca_ip(int raiz, char* pk);
+int busca_ip(int raiz, char* pk, int imprimir);
+//busca determinado nome no indice ibrand
+int busca_is(int raiz, char* nome, int imprimir);
 /* Exibe o jogo */
 int exibir_registro(int rrn);
 
@@ -289,8 +291,8 @@ int main()
 		 //TODO CONTABILIZACAO DO NUMERO DE CHAVES ESTA ERRADA
 		 //movimentando ponteiro para ponto do arquivo onde ocorrerá a escrita
 		 char* p = ARQUIVO_IP + ((tamanho_registro_ip) * (nregistrosip));
-		 int tempChaves = 0;
-		 tempChaves = aux->num_chaves;
+		 char tempChaves[ordem_is];
+ 		 sprintf(tempChaves, "%03d", aux->num_chaves);
 		 //verificando se é necessario completar com # os espaços em branco
 		 int hash = 0;
 		 char tempHash[TAM_STRING_INDICE];
@@ -341,28 +343,32 @@ int main()
 			}
 			tempFilhos[j] = '\0';
 		}
-		sprintf(p,"%d%s%d%s", tempChaves, tempHash, aux->folha, tempFilhos);
+		sprintf(p,"%s%s%d%s", tempChaves, tempHash, aux->folha, tempFilhos);
 		// strcpy(ARQUIVO_IP, p);
 	 }
 	 else if(ip == 's'){
 		node_Btree_is* aux = (node_Btree_is*)salvar;
-		char* p = ARQUIVO_IS + (tamanho_registro_is) * (nregistrosis);
+		char* p = ARQUIVO_IS + (tamanho_registro_is * nregistrosis);
 
-		int tempChaves = 0;
-		tempChaves = aux->num_chaves;
+		//escrevendo o numero de chaves naquele no em uma string temporaria
+		char tempChaves[ordem_is];
+		sprintf(tempChaves, "%03d", aux->num_chaves);
 
 		int hash = 0;
 		char tempHash[TAM_STRING_INDICE];
 		char* ptempHash = tempHash;
 		//passando pk e strings das chaves para um auxiliar
 		for(int i = 0; i < aux->num_chaves; i++){
-			sprintf(ptempHash, "%s%s", aux->chave[i].pk, aux->chave[i].string);
+			sprintf(ptempHash, "%s %s", aux->chave[i].pk, aux->chave[i].string);
 			ptempHash += 10 + strlen(aux->chave[i].string);
-			hash = ((ordem_is - 1) * 10 + 101) -  strlen(aux->chave[i].string);
-			if(hash){
-				//colocando o numero de # necessarios em uma string auxiliars
+			// hash = ((ordem_is - 1) * 10 + 101) - strlen(aux->chave[i].string);
+			hash = 10 + 101 - strlen(aux->chave[i].string);
+			if(hash > 0){
+				ptempHash++;
+				//colocando o numero de # necessarios em uma string auxiliar
 				for(int j = 0; j < hash; j++){
 					sprintf(ptempHash, "%c", '#');
+					// printf("%d\n", j);
 					ptempHash++;
 				}
 			}
@@ -376,13 +382,16 @@ int main()
 			   filhos++;
 		   }
 	   }
-	   printf("%d\n", filhos);
 	   char tempFilhos[ordem_is];
 	   if(filhos){
 		   int i;
+		   //passando os filhos para uma string auxiliar
+		   //TODO esta certo a condicao deste for?
 		   for(i = 0; i < filhos * (ordem_ip) * 3; i++){
 			   tempFilhos[i] = aux->desc[i];
 		   }
+		   //inserindo * nessa string auxiliar de acordo com o numero de descendentes
+		   //em branco
 		   if(filhos < ordem_ip){
 			   for(int j = 0; j < filhos - ordem_ip; j++, i++){
 				   tempFilhos[i] = '*';
@@ -391,15 +400,17 @@ int main()
 		   tempFilhos[i] = '\0';
 	   }else{
 		   int j;
+		   //inserindo * nessa string auxiliar de acordo com o numero de descendentes
+		   //em branco
 		   for(j = 0; j < ordem_ip * 3;j++){
 			   tempFilhos[j] = '*';
 		   }
 		   tempFilhos[j] = '\0';
 	   }
 	   //TODO consertar num_chaves pois esta de 1 byte e deve ser 3
-	   sprintf(p,"%d%s%c%s", tempChaves, tempHash, aux->folha, tempFilhos);
+	   sprintf(p,"%s%s%c%s", tempChaves, tempHash, aux->folha, tempFilhos);
 	   // strcpy(ARQUIVO_IS, p);
-	   printf("%s\n", ARQUIVO_IS);
+	   printf("%s\n", p);
 	   //TODO erro da depois do printf ?????
 	 }
  }
@@ -507,7 +518,8 @@ int main()
  //realiza procedimentos de alocacao de um novo no
  void* criar_no(char ip){
 	 if(ip == 'p'){
-		 node_Btree_ip* novoIp = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+		 //TODO precisa dar malloc nos campos do nó?
+		 node_Btree_ip* novoIp = (node_Btree_ip*)calloc(1, sizeof(node_Btree_ip));
 		 novoIp->num_chaves = 0;
 		 novoIp->chave = (Chave_ip*)malloc((ordem_ip - 1) * sizeof(Chave_ip));
 		 novoIp->folha = 'F';
@@ -517,7 +529,7 @@ int main()
 		 }
 		 return novoIp;
 	 }if(ip == 's'){
-		 node_Btree_is* novoIs = (node_Btree_is*)malloc(sizeof(node_Btree_is));
+		 node_Btree_is* novoIs = (node_Btree_is*)calloc(1, sizeof(node_Btree_is));
 		 novoIs->num_chaves = 0;
 		 novoIs->chave = (Chave_is*)malloc((ordem_is - 1) * sizeof(Chave_is));
 		 novoIs->folha = 'F';
@@ -530,6 +542,23 @@ int main()
 		 return NULL;
 	 }
  }
+//libera memoria alocada pelo nó, incluindo ele mesmo
+void libera_no(void *node, char ip){
+	if(ip == 'p'){
+		node_Btree_ip* temp = (node_Btree_ip*)node;
+		free(temp->chave);
+		free(temp->desc);
+		free(temp);
+		return;
+	}
+	if(ip == 's'){
+		node_Btree_is* temp = (node_Btree_is*)node;
+		free(temp->chave);
+		free(temp->desc);
+		free(temp);
+		return;
+	}
+}
  /* Atualiza os dois índices com o novo registro inserido */
  void inserir_registro_indices(Indice *iprimary, Indice *ibrand, Produto product){
 	 if(iprimary->raiz == -1){//caso o indice esteja vazio, criamos o primeiro indice
@@ -543,6 +572,7 @@ int main()
 		//escrita do novo no no arquivo de dados do indice iprimary
 		write_btree(novoIp, iprimary->raiz, 'p');
 		//TODO devo dar free no nó e em seus campos aqui?
+		libera_no(novoIp, 'p');
 		nregistrosip++;
 	}else{//caso a árvore não esteja vazia, inserimos o novo nó na posicao correta
 		//rotina de insercao em Ip (pseudo codigo de insercao)
@@ -559,6 +589,7 @@ int main()
 			iprimary->raiz = nregistrosip;
 
 			write_btree(x, nregistrosip, 'p');
+			libera_no(x, 'p');
 			nregistrosip++;
 		}
 	}
@@ -572,7 +603,8 @@ int main()
 		ibrand->raiz = 0;
 		//escrita do novo no no arquivo de dados do indice ibrand
 		write_btree(novoIs, ibrand->raiz, 's');
-		printf("HENLO FREN\n");
+		printf("YUCK FOU\n");
+		libera_no(novoIs, 's');
 		nregistrosis++;
 	}else{//caso a árvore não esteja vazia, inserimos o novo nó na posicao correta
 		//rotina de insercao em Is (pseudo codigo de insercao)
@@ -590,6 +622,7 @@ int main()
 			iprimary->raiz = nregistrosip;
 
 			write_btree(y, nregistrosis, 's');
+			libera_no(y, 's');
 			nregistrosis++;
 		}
 	}
@@ -598,7 +631,7 @@ int main()
  void* inserir_Btree_ip_aux(Indice* iprimary, Produto product){
 	 //recupera o registro do arquivo de indice iprimary
 	 node_Btree_ip* x = (node_Btree_ip*)read_btree(iprimary->raiz, 'p');
-	 node_Btree_ip*	node = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+	 node_Btree_ip*	node = (node_Btree_ip*)calloc(1, sizeof(node_Btree_ip));
 	 int i;
 	 //TODO dar free no "retorno"
 	 //verifica se o no recuperado é folha
@@ -620,11 +653,14 @@ int main()
 			 x->chave[i + 1].rrn = nregistros;
 			 //escrevendo no nó na arvore
 			 write_btree(x, iprimary->raiz, 'p');
-
+			 libera_no(x, 'p');
+			 libera_no(node, 'p');
 			 return NULL;
 		 	}
 			else{
-			 divide_no_ip(iprimary, product, -1);
+			 	libera_no(x, 'p');
+	   			libera_no(node, 'p');
+				divide_no_ip(iprimary, product, -1);
 		 	}
 		}
 		//caso o node encontrado nao seja uma folha
@@ -635,7 +671,7 @@ int main()
 				i = i - 1;
 			}
 			i = i + 1;
-			Indice* promo = (Indice *)malloc(sizeof(Indice));
+			Indice* promo = (Indice *)calloc(1 , sizeof(Indice));
 			promo->raiz = x->desc[i];
 			node = (node_Btree_ip*)inserir_Btree_ip_aux(promo, product);
 		}
@@ -658,12 +694,17 @@ int main()
 				x->desc[i + 2] = node->desc[0];
 				x->num_chaves += 1;
 				write_btree(x, iprimary->raiz, 'p');
-
+				libera_no(x, 'p');
+   			 	libera_no(node, 'p');
 				return node;
 			}else{
+				libera_no(x, 'p');
+   			 	libera_no(node, 'p');
 				return divide_no_ip(iprimary, product, node->desc[0]);
 			}
 		}else{
+			libera_no(x, 'p');
+			libera_no(node, 'p');
 			return NULL;
 		}
 }
@@ -671,7 +712,7 @@ int main()
  void* inserir_Btree_is_aux(Indice* ibrand, Produto product){
 	//recupera o registro do arquivo de indice iprimary
 	node_Btree_is* x = (node_Btree_is*)read_btree(ibrand->raiz, 'p');
-	node_Btree_is*	node = (node_Btree_is*)malloc(sizeof(node_Btree_is));
+	node_Btree_is* node = (node_Btree_is*)calloc(1, sizeof(node_Btree_is));
 	int i;
 	//TODO dar free no "retorno"
 	//verifica se o no recuperado é folha
@@ -693,11 +734,14 @@ int main()
 			strcpy(x->chave[i + 1].string, product.nome);
 			//escrevendo no nó na arvore
 			write_btree(x, ibrand->raiz, 's');
-
+			libera_no(x, 's');
+			libera_no(node, 's');
 			return NULL;
 		   }
 		   else{
-			divide_no_is(ibrand, product, -1);
+			   libera_no(x, 's');
+			   libera_no(node, 's');
+			   divide_no_is(ibrand, product, -1);
 		   }
 	   }
 	   //caso o node encontrado nao seja uma folha
@@ -708,7 +752,7 @@ int main()
 			   i = i - 1;
 		   }
 		   i = i + 1;
-		   Indice* promo = (Indice *)malloc(sizeof(Indice));
+		   Indice* promo = (Indice *)calloc(1, sizeof(Indice));
 		   promo->raiz = x->desc[i];
 		   node = (node_Btree_is*)inserir_Btree_is_aux(promo, product);
 	   }
@@ -730,12 +774,17 @@ int main()
 			   x->desc[i + 2] = node->desc[0];
 			   x->num_chaves += 1;
 			   write_btree(x, ibrand->raiz, 's');
-
+			   libera_no(x, 's');
+  			   libera_no(node, 's');
 			   return node;
 		   }else{
+			   libera_no(x, 's');
+  			   libera_no(node, 's');
 			   return divide_no_is(ibrand, product, node->desc[0]);
 		   }
 	   }else{
+		   libera_no(x, 's');
+		   libera_no(node, 's');
 		   return NULL;
 	   }
 }
@@ -788,6 +837,8 @@ int main()
 
 	 write_btree(y, nregistrosip, 'p');
 	 write_btree(node, x->raiz, 'p');
+	 libera_no(node, 'p');
+	 libera_no(y, 'p');
 	 nregistrosip++;
 
 	 return chave_promovida;
@@ -847,32 +898,13 @@ int main()
 
 	write_btree(y, nregistrosip, 's');
 	write_btree(node, x->raiz, 's');
+	libera_no(node, 's');
+	libera_no(y, 's');
 	nregistrosis++;
-
 	return chave_promovida;
 }
-//efetua busca por um registro em um dos arquivos de indice
- void buscar(Indice iprimary,Indice ibrand){
-	 int opBusca;
-	 char* chaveBusca;
-
-	 scanf("%d%*c", &opBusca);
-
-	 switch(opBusca){
-		 case 1://busca pela pk
-		 	scanf("%[^\n]%*c", chaveBusca);
-			busca_ip(iprimary.raiz, chaveBusca);
-		 break;
-
-		 case 2://busca pela marca/nome
-		 scanf("%[^\n]%*c", chaveBusca);
-		 busca_ip(ibrand.raiz, chaveBusca);
-		 break;
-	 }
-
- }
 //efetua busca no indice iprimary
- int busca_ip(int raiz, char* pk){
+ int busca_ip(int raiz, char* pk, int imprimir){
 	 if(raiz == -1){
 		 return 0;
 	 }
@@ -887,17 +919,39 @@ int main()
  	}
  	//checa se o ponteiro i aponta para o produto procurado
  	if(i <= x->num_chaves && strcmp(pk, x->chave[i].pk) == 0){
- 		return x->chave[i].rrn;
+		libera_no(x, 'p');
+		//TODO pode ser util retornar o rrn do registro no indice primario?
+ 		// return x->chave[i].rrn;
+		char* p = ARQUIVO_IP + (tamanho_registro_ip * x->chave[i].rrn);
+		char* tempRRN = NULL;
+		//posicionando o ponteiro na posicao onde se encontra o rrn do arquivo de dados
+		p += 3 + 10;
+
+		for(int i = 0; i < 4; i++){
+			tempRRN[i] = p[i];
+		}
+
+		return atoi(tempRRN);
  	}
  	if(x->folha == 'F'){
+		libera_no(x, 'p');
  		return 0;
  	}
  	else{
- 		return busca_ip(x->desc[i], pk);
+		libera_no(x, 'p');
+		if(imprimir){
+			printf("%s", x->chave[0].pk);
+			for(int k = 1; k < x->num_chaves; k++){
+				printf(" ,%s", x->chave[k].pk);
+			}
+			return busca_is(x->desc[i], pk, 1);
+		}
+		else
+			return busca_ip(x->desc[i], pk, 0);
  	}
  }
  //efetua busca no indice ibrand
- int busca_is(int raiz, char* nome){
+ int busca_is(int raiz, char* nome, int imprimir){
 	 if(raiz){
 		 return 0;
 	 }
@@ -912,13 +966,24 @@ int main()
  	}
  	//checa se o ponteiro i aponta para o produto procurado
  	if(i <= x->num_chaves && strcmp(nome, x->chave[i].string) == 0){
+		libera_no(x, 's');
  		return 1;
  	}
  	if(x->folha == 'F'){
+		libera_no(x, 's');
  		return 0;
  	}
  	else{
- 		return busca_is(x->desc[i], nome);
+		libera_no(x, 's');
+		if(imprimir){
+			printf("%s", x->chave[0].string);
+			for(int k = 1; k < x->num_chaves; k++){
+				printf(", %s", x->chave[k].string);
+			}
+			return busca_is(x->desc[i], nome, 1);
+		}
+		else
+			return busca_is(x->desc[i], nome, 0);
  	}
  }
 /* Recebe do usuário uma string simulando o arquivo completo e retorna o número
@@ -1015,7 +1080,7 @@ int exibir_registro(int rrn)
 //verifica se a chave passada como parametro ja se encontra em ip
 int verifica_chave(char* chave, Indice* iprimary){
 	int foundIt = 0;
-	foundIt = busca_ip(iprimary->raiz, chave);
+	foundIt = busca_ip(iprimary->raiz, chave, 0);
 	if(foundIt){
 		printf(ERRO_PK_REPETIDA, chave);
 		return 0;
@@ -1023,6 +1088,7 @@ int verifica_chave(char* chave, Indice* iprimary){
 	return foundIt;
 }
 //********************funcoes de interacao com o usuario*************************************
+//cadastra determinado produto nos arquivos de indices e dados
 void cadastrar(Indice* iprimary, Indice* ibrand){
 	char temp[TAM_REGISTRO];
 	Produto novo;
@@ -1062,4 +1128,96 @@ void cadastrar(Indice* iprimary, Indice* ibrand){
 	// printf("%s\n", ARQUIVO);
 	//inserindo o produto no indice primario
 	inserir_registro_indices(iprimary, ibrand, novo);
+}
+//altera o desconto do produto referente a chave primaria inserida
+int alterar_desconto(Indice* iprimary){
+	char pkBusca[TAM_PRIMARY_KEY];
+	//recebe pk do usuario
+	scanf("%[^\n]%*c", &pkBusca);
+	//busca pk no indice primario
+	int retornoRRN = busca_ip(iprimary->raiz, pkBusca, 0);
+
+	if(!retornoRRN){
+		printf(REGISTRO_N_ENCONTRADO);
+		return 0;
+	}
+	else{
+		char* desconto;
+		scanf("%[^\n]%*c", desconto);
+
+		int i = atoi(desconto);
+		//conferindo se o desconto passado pelo usuario segue a formatacao necessaria
+		while(i < 0 || i > 100 || strlen(desconto) != 3){
+			printf(CAMPO_INVALIDO);
+			scanf("%s%*c", desconto);
+			i = atoi(desconto);
+		}
+
+		char* p = ARQUIVO_IP + (tamanho_registro_ip * retornoRRN);
+		char* tempRRN = NULL;
+		//posicionando o ponteiro na posicao onde se encontra o rrn do arquivo de dados
+		p += 3 + 10;
+		//passando o rrn do arquivo de dados para uma string temporaria
+		for(int j = 0; j < 4; j++){
+			tempRRN[j] = p[j];
+		}
+		int rrnDados = atoi(tempRRN);
+		//recuperando o produto para ter acesso a seus campos
+		Produto alterado = recuperar_registro(rrnDados);
+		//obtendo o deslocamento necessario para encontrar o campo desconto do registro
+		int deslocamento = strlen(alterado.nome) + strlen(alterado.marca) + strlen(alterado.data)
+		 				+ strlen(alterado.ano) + strlen(alterado.preco) + (rrnDados * 192) + 5;
+
+		//posicionando o apontador no inicio do campo desconto
+		p = ARQUIVO + deslocamento;
+		//escrevendo o novo desconto no arquivo de dados
+		int z;
+		for(z = 0; z < 3; z++){
+			p[z] = desconto[z];
+		}
+		return 1;
+	}
+}
+//efetua busca por um registro em um dos arquivos de indice
+ void buscar(Indice iprimary,Indice ibrand){
+	 //TODO falta impressao na tela
+	 int opBusca;
+	 char* chaveBusca;
+
+	 scanf("%d%*c", &opBusca);
+
+	 int foundIt = -1;
+	 switch(opBusca){
+		 case 1://busca pela pk
+		 	scanf("%[^\n]%*c", chaveBusca);
+			foundIt = busca_ip(iprimary.raiz, chaveBusca, 1);
+			if(foundIt == -1)
+				printf(REGISTRO_N_ENCONTRADO);
+			else
+				exibir_registro(foundIt);
+		 break;
+
+		 case 2://busca pela marca/nome
+			 scanf("%[^\n]%*c", chaveBusca);
+			 foundIt = busca_ip(ibrand.raiz, chaveBusca, 1);
+			 if(foundIt == -1)
+			 	printf(REGISTRO_N_ENCONTRADO);
+			 else
+			 	exibir_registro(foundIt);
+		 break;
+	 }
+
+ }
+//lista todos os registros presentes nos arquivos de indice
+void listar(Indice iprimary,Indice ibrand){
+	int opLista = 0;
+
+	scanf("%d%*c", opLista);
+
+	if(opLista == 1){
+
+	}
+	else if(opLista == 2){
+		
+	}
 }
