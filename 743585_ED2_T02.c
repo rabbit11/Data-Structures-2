@@ -300,7 +300,7 @@ int main()
 		 //movimentando ponteiro para ponto do arquivo onde ocorrerá a escrita
 		 char *p = NULL;
 		 p = ARQUIVO_IP + (tamanho_registro_ip * rrn);
-		 char tempChaves[ordem_is];
+		 char tempChaves[ordem_ip];
  		 sprintf(tempChaves, "%03d", aux->num_chaves);
 		 //verificando se é necessario completar com # os espaços em branco
 		 int hash = 0;
@@ -357,20 +357,21 @@ int main()
 		// printf("%s\n", ARQUIVO_IP);
 	 }
 	 else if(ip == 's'){
+		 //TODO ao remover uma das chaves do nó, esta chave continua no arquivo
 		node_Btree_is* aux = (node_Btree_is*)salvar;
 		char* p = ARQUIVO_IS + (tamanho_registro_is * rrn);
 
 		//escrevendo o numero de chaves naquele no em uma string temporaria
 		char tempChaves[ordem_is];
 		sprintf(tempChaves, "%03d", aux->num_chaves);
-
 		int hash = 0;
 		char tempHash[TAM_STRING_INDICE + TAM_REGISTRO + 2];
 		int tam = 0;
 		//passando pk e strings das chaves para um auxiliar
 		for(int i = 0; i < aux->num_chaves; i++){
 			sprintf((tempHash + tam), "%s %s", aux->chave[i].pk, aux->chave[i].string);
-			tam += 10 + strlen(aux->chave[i].string)+1;
+			tam += 11 + strlen(aux->chave[i].string);
+			// printf("RRNZAO %s\n", aux->chave[]);
 			// hash = ((ordem_is - 1) * 10 + 101) - strlen(aux->chave[i].string);
 			hash = 101 - strlen(aux->chave[i].string);
 			if(hash > 0){
@@ -382,7 +383,6 @@ int main()
 			}
 	   }
 	   tempHash[tam] = '\0';
-	   printf("K|D|A %s\n", tempHash);
 	   //verificando se e necessario completar com * o espaco dos descendentes
 	   //daquele node
 	   int filhos = 0;
@@ -414,7 +414,7 @@ int main()
  		  tempFilhos[j] = '\0';
  	  }
 	   sprintf(p,"%s%s%c%s", tempChaves, tempHash, aux->folha, tempFilhos);
-	 //   printf("S %s\n", ARQUIVO_IS);
+	   printf("S %s\n", p);
 	 }
  }
  /*Lê um nó do arquivo de índice e retorna na estrutura*/
@@ -477,6 +477,7 @@ int main()
 		int i;
 		char nchaves[4];
 
+		printf("%s\n", s);
 		//obtendo o numero de chaves naquele no
 		for(i = 0; i < 3; i++){
 		   nchaves[i] = s[i];
@@ -484,20 +485,23 @@ int main()
 		nchaves[i] = '\0';
 
 		x->num_chaves = (int)atoi(nchaves);
-
 		//obtendo as chaves presentes naquele no
-		int k =0;
+		int k = 0, tamString = 0;
 		for(int j = 0; j < x->num_chaves; j++){
+			k = 0, tamString = 0;
 			strncpy(x->chave[j].pk, (s + i), 10);
-			x->chave[j].pk[10] = '\0';
-			for(k = 0; s[k] != '#'; k++){
-				x->chave[j].string[k] = s[k];
+			i+= 11;
+			//descobrindo o tamanho da string sem # e \0
+			for(k = 0; s[i + k] != '#' && k < 101; k++){
+				tamString++;
 			}
-			x->chave[j].string[k] = '\0';
-   		 	i += 14;
+			strncpy(x->chave[j].string, (s + i), tamString);
+			x->chave[j].string[tamString + 1] = '\0';
+			x->chave[j].pk[10] = '\0';
+			// printf("%s\n", x->chave[j].string);
+			i+= 101;
 		}
 		//obtendo se aquele nó é ou não folha
-		i+=98;
 		x->folha = s[i];
 		i++;
 		//obtendo os descendentes daquele nó
@@ -513,7 +517,7 @@ int main()
 			}
 		}
 		// for(int i = 0; i < x->num_chaves; i++){
-		// 	printf("%d | %s | %c | %d\n", x->num_chaves, x->chave[i].pk, x->folha, x->desc[i]);
+		// 	printf("%d !! %s !! %s !! %c !! %d\n", x->num_chaves, x->chave[i].pk, x->chave[i].string, x->folha, x->desc[i]);
 		// }
 		return x;
 	}
@@ -586,7 +590,6 @@ void libera_no(void *node, char ip){
 	}else{//caso a árvore não esteja vazia, inserimos o novo nó na posicao correta
 		//rotina de insercao em Ip (pseudo codigo de insercao)
 		// node_Btree_ip* promocaoIp = (node_Btree_ip*)criar_no('p');
-		// promocaoIp = (node_Btree_ip*)inserir_Btree_ip_aux(iprimary, product);
 		Info_node* promocaoIp = (Info_node*)calloc(1,sizeof(Info_node));
 		promocaoIp = (Info_node*)inserir_Btree_ip_aux(iprimary, product);
 		if(promocaoIp){
@@ -601,7 +604,6 @@ void libera_no(void *node, char ip){
 			x->desc[0] = iprimary->raiz;
 			x->desc[1] = promocaoIp->desc;
 			iprimary->raiz = nregistrosip;
-
 			// write_btree(x, iprimary->raiz, 'p');
 			write_btree(x, nregistrosip, 'p');
 			libera_no(x, 'p');
@@ -624,7 +626,6 @@ void libera_no(void *node, char ip){
 	}else{//caso a árvore não esteja vazia, inserimos o novo nó na posicao correta
 		//rotina de insercao em Is (pseudo codigo de insercao)
 		// node_Btree_is* promocaoIs;
-		// promocaoIs = (node_Btree_is*)inserir_Btree_is_aux(ibrand, product);
 		Info_node* promocaoIs = (Info_node*)calloc(1, sizeof(Info_node));
 		promocaoIs = (Info_node*)inserir_Btree_is_aux(ibrand, product);
 		if(promocaoIs){
@@ -638,8 +639,7 @@ void libera_no(void *node, char ip){
 			y->desc[1] = promocaoIs->desc;
 			ibrand->raiz = nregistrosis;
 
-			// write_btree(y, nregistrosis, 's');
-			write_btree(y, promocaoIs->rrn_pagina, 's');
+			write_btree(y, nregistrosis, 's');
 			libera_no(y, 's');
 			nregistrosis++;
 		}
@@ -700,7 +700,6 @@ void libera_no(void *node, char ip){
 			i = i + 1;
 			Indice* promo = (Indice *)calloc(1 , sizeof(Indice));
 			promo->raiz = x->desc[i];
-			// chave_promovida = (node_Btree_ip*)inserir_Btree_ip_aux(promo, product);
 			Info_node* chave_promovida = (Info_node*)inserir_Btree_ip_aux(promo, product);
 			free(promo);
 		}
@@ -719,7 +718,6 @@ void libera_no(void *node, char ip){
 				}
 				x->chave[i + 1].rrn = node->chave[0].rrn;
 				strcpy(x->chave[i + 1].pk, product.pk);
-				//TODO COMO OBTER O FILHO DIREITO?
 				x->desc[i + 2] = node->desc[0];
 				x->num_chaves += 1;
 				write_btree(x, iprimary->raiz, 'p');
@@ -743,91 +741,102 @@ void libera_no(void *node, char ip){
 }
 //insercao na arvore b, indice is (pseudo codigo de insercao em arvore b)
  void* inserir_Btree_is_aux(Indice* ibrand, Produto product){
-	//recupera o registro do arquivo de indice iprimary
-	node_Btree_is* x = (node_Btree_is*)read_btree(ibrand->raiz, 's');
-	if(!x){
-		libera_no(x, 's');
-		return NULL;
-	}
-	node_Btree_is* node = (node_Btree_is*)calloc(1, sizeof(node_Btree_is));
-	int i;
-	//TODO dar free no "retorno"
-	//verifica se o no recuperado é folha
-	if(x->folha == 'F'){
-		//verifica se o numero de chaves alocada no nó é menor que o máximo
-		if(x->num_chaves < (ordem_is - 1)){
-			//posiciona i na posicao do ultimo elemento daquele no
-			//(num_chaves - 1, para acessar a posicao correta, ex: 1 chave, esta
-			//se econtra na pos 0)
-			i = x->num_chaves - 1;
-			//encotrando a posicao correta para a insercao do novo node
-			while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
+	 //recupera o registro do arquivo de indice iprimary
+	 node_Btree_is* x = (node_Btree_is*)read_btree(ibrand->raiz, 's');
+	 if(!x){
+	 	libera_no(x, 's');
+	 	return NULL;
+	 }
+
+	 node_Btree_is*	node = (node_Btree_is*)criar_no('s');
+	 // node_Btree_ip*	chave_promovida = (node_Btree_ip*)criar_no('p');
+	 Info_node* chave_promovida = (Info_node*)calloc(1,sizeof(Info_node));
+	 int i;
+	 //TODO dar free no "retorno"
+	 //verifica se o no recuperado é folha
+	 if(x->folha == 'F'){
+	 	//verifica se o numero de chaves alocada no nó é menor que o máximo
+	 	if(x->num_chaves < (ordem_ip - 1)){
+	 		//posiciona i na posicao do ultimo elemento daquele no
+	 		//(num_chaves - 1, para acessar a posicao correta, ex: 1 chave, esta
+	 		//se econtra na pos 0)
+	 		i = x->num_chaves - 1;
+	 		//encotrando a posicao correta para a insercao do novo node
+	 		while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
+				//TODO ta certo isso aqui?
 				x->chave[i + 1] = x->chave[i];
-				i += -1;
-			}
-			//inserindo o novo no na posicao correta
-			strcpy(x->chave[i + 1].pk, product.pk);
-			x->num_chaves += 1;
-			strcpy(x->chave[i + 1].string, product.nome);
-			//escrevendo no nó na arvore
-			write_btree(x, ibrand->raiz, 's');
-			libera_no(x, 's');
-			libera_no(node, 's');
+	 			i = i - 1;
+	 		}
+	 		//inserindo o novo no na posicao correta
+	 		strcpy(x->chave[i + 1].pk, product.pk);
+			sprintf(x->chave[i + 1].string, "%s$%s", product.marca, product.nome);
+	 		x->num_chaves += 1;
+	 		// x->chave[i + 1].rrn = nregistrosip;
+	 		//escrevendo no nó da arvore
+	 		write_btree(x, ibrand->raiz, 's');
 
-			return NULL;
-		   }
-		   else{
-			   libera_no(x, 's');
-			   libera_no(node, 's');
-			   return divide_no_is(ibrand, product, -1);
-		   }
-	   }
-	   //caso o node encontrado nao seja uma folha
-	   else{
-		   i = x->num_chaves - 1;
-		   //encontrando a posicao correta dentro do node
-		   while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
-			   i = i - 1;
-		   }
-		   i = i + 1;
-		   Indice* promo = (Indice *)calloc(1, sizeof(Indice));
-		   promo->raiz = x->desc[i];
-		   node = (node_Btree_is*)inserir_Btree_is_aux(promo, product);
-		   free(promo);
-	   }
-	   //caso a promocao tenha ocorrido
-	   if(node){
-		   //TODO como passar os parâmetros de node para o produto?
-		   strcpy(product.pk, node->chave[0].pk);
+	 		libera_no(x, 's');
+	 		libera_no(node, 's');
 
-		   if(x->num_chaves < ordem_ip - 1){
-			   i = x->num_chaves;
-			   while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
-				   strcpy(x->chave[i + 1].pk, x->chave[i].pk);
-				   x->desc[i + 2] = x->desc[i + 1];
-				   i = i - 1;
-			   }
-			   strcpy(x->chave[i + 1].string, node->chave[0].string);
-			   strcpy(x->chave[i + 1].pk, product.pk);
-			   //TODO COMO OBTER O FILHO DIREITO?
-			   x->desc[i + 2] = node->desc[0];
-			   x->num_chaves += 1;
-			   write_btree(x, ibrand->raiz, 's');
-			   libera_no(x, 's');
-  			   libera_no(node, 's');
+	 		return NULL;
+	 	   }
+	 	   else{
+	 		   libera_no(x, 's');
+	 		   libera_no(node, 's');
+	 		   return divide_no_is(ibrand, product, -1);
+	 	   }
+	    }
+	    //caso o node encontrado nao seja uma folha
+	    else if(x->folha == 'N'){
+	 	   i = x->num_chaves - 1;
+	 	   //encontrando a posicao correta dentro do node
+	 	   while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
+	 		   i = i - 1;
+	 	   }
+	 	   i = i + 1;
+	 	   Indice* promo = (Indice *)calloc(1 , sizeof(Indice));
+	 	   promo->raiz = x->desc[i];
+	 	   Info_node* chave_promovida = (Info_node*)inserir_Btree_is_aux(promo, product);
+	 	   free(promo);
+	    }
+	    //caso a promocao tenha ocorrido
+	    if(chave_promovida){
+	 	   //TODO como passar os parâmetros de node para o produto?
+	 	   strcpy(product.pk, node->chave[0].pk);
+	 	   if(x->num_chaves < ordem_is - 1){
+	 		   i = x->num_chaves;
 
-			   return node;
-		   }else{
-			   libera_no(x, 's');
-  			   libera_no(node, 's');
+	 		   while(i >= 0 && strcmp(product.pk, x->chave[i].pk) < 0){
+	 			   strcpy(x->chave[i + 1].pk, x->chave[i].pk);
+				   // strcpy(x->chave[i+1].string, x->chave[i].string);
+				   //TODO devo pegar a string tambem?
+	 			   x->desc[i + 2] = x->desc[i + 1];
+	 			   i = i - 1;
+	 		   }
+	 		   // x->chave[i + 1].rrn = node->chave[0].rrn;
+	 		   strcpy(x->chave[i + 1].pk, product.pk);
+			   sprintf(x->chave[i + 1].string, "%s$%s", product.marca, product.nome);
+	 		   //TODO COMO OBTER O FILHO DIREITO?
+	 		   x->desc[i + 2] = node->desc[0];
+	 		   x->num_chaves += 1;
+	 		   write_btree(x, ibrand->raiz, 's');
 
-			   return divide_no_is(ibrand, product, node->desc[0]);
-		   }
-	   }else{
-		   libera_no(x, 's');
-		   libera_no(node, 's');
-		   return NULL;
-	   }
+	 		   libera_no(x, 's');
+	 		   libera_no(node, 's');
+	 		   free(chave_promovida);
+	 		   return node;
+	 	   }else{
+	 		   libera_no(x, 's');
+	 		   libera_no(node, 's');
+	 		   free(chave_promovida);
+	 		   return divide_no_is(ibrand, product, node->desc[0]);
+	 	   }
+	    }else{
+	 	   libera_no(x, 's');
+	 	   libera_no(node, 's');
+	 	   free(chave_promovida);
+	 	   return NULL;
+	    }
 }
  Info_node* divide_no_ip(Indice* x, Produto product, int fdireito){
 	 //TODO CONFERIR
@@ -895,7 +904,7 @@ void libera_no(void *node, char ip){
 	 return chave_promovida;
 }
  Info_node* divide_no_is(Indice* x, Produto product, int fdireito){
-	 //TODO CONFERIR
+	 //TODO sempre que eu copiar pk preciso copiar a string tambem?
 	 //recupera-se a pagina x
 	 node_Btree_is* node = (node_Btree_is*)read_btree(x->raiz, 's');
 	 //colocamos i na posicao do ultimo elemento da pagina
@@ -910,53 +919,56 @@ void libera_no(void *node, char ip){
 	 for(int j = y->num_chaves - 1; i > 0; i--){
 		 if(!chave_alocada && strcmp(product.pk, node->chave[i].pk) > 0){
 			 strcpy(y->chave[j].pk, product.pk);
-			 sprintf(y->chave[j].pk, "%s$%s", product.marca, product.nome);
+			 sprintf(y->chave[j].string, "%s$%s", product.marca, product.nome);
 			 // if(fdireito != -1){
 				 y->desc[j + 1] = fdireito;
 				 chave_alocada = 1;
-			// }else{
+		 	// }else{
 			// 	y->desc[j + 1] = -1;
 			// }
 		 }
 		 else{
-			 strcpy(y->chave[j].string, node->chave[i].string);
+			 // y->chave[j].rrn = node->chave[i].rrn;
 			 strcpy(y->chave[j].pk, node->chave[i].pk);
+			 strcpy(y->chave[j].string, node->chave[i].string);
 			 y->desc[j + 1] = node->desc[i + 1];
 			 i = i - 1;
 		 }
 	 }
 	 if(!chave_alocada){
 		 while(i >= 0 && strcmp(product.pk, node->chave[i].pk) < 0){
-			 // node->chave[i + 1] = node->chave[i];
 			 strcpy(node->chave[i+1].pk, node->chave[i].pk);
-			 strcpy(node->chave[i+1].string, node->chave[i].string);
+			 // strcpy(node->chave[i+1].string, node->chave[i].string);
 			 node->desc[i + 2] = node->desc[i + 1];
 			 i = i - 1;
 		 }
 		 strcpy(node->chave[i + 1].pk, product.pk);
-		 sprintf(node->chave[i + 1].string, "%s$%s", product.marca, product.nome);
+		 // sprintf(node->chave[i + 1].string, "%s$%s", product.marca, product.nome);
 		 // if(fdireito != -1)
-			node->desc[i + 2] = fdireito;
+		 	node->desc[i + 2] = fdireito;
 		// else
 			// node->desc[i + 2] = -1;
 	 }
-	 // node_Btree_is* chave_promovida = (node_Btree_is*)criar_no('s');
+	 // node_Btree_ip* chave_promovida = (node_Btree_ip*)criar_no('p');
 	 Info_node* chave_promovida = (Info_node*)calloc(1, sizeof(Info_node));
-	 strcpy(chave_promovida->chave.pk, node->chave[(ordem_is / 2)].pk);
-	 strcpy(chave_promovida->chave.string, node->chave[(ordem_is) / 2].string);
+	 strcpy(chave_promovida->chave.pk, node->chave[(ordem_ip / 2)].pk);
+	 // chave_promovida->rrn = node->chave[(ordem_ip / 2)].rrn;
+	 strcpy(chave_promovida->chave.string, node->chave[(ordem_is / 2)].string);
 	 chave_promovida->rrn_pagina = nregistrosis;
-	 // chave_promovida->rrn = ???
-	 y->desc[0] = node->desc[(ordem_ip / 2) + 1];
-	 node->num_chaves = ordem_ip / 2;
+	 chave_promovida->rrn = -1; //TODO o que fazer aqui?
 
+	 y->desc[0] = node->desc[(ordem_is / 2) + 1];
+	 node->num_chaves = ordem_is / 2;
+
+	 //TODO erro possivelmente no read do arquivo IS
 	 write_btree(node, x->raiz, 's');
-	 write_btree(y, nregistrosip, 's');
+	 write_btree(y, nregistrosis, 's');
+	 nregistrosis++;
 	 libera_no(node, 's');
-	 // libera_no(y, 'p');
+	 libera_no(y, 's');
 	 //TODO dou free aqui ou dando free no insere aux ja esta tudo certo?
 	 // libera_no(chave_promovida, 'p');
 
-	 nregistrosip++;
 	 //TODO pseudo codigo fala pra retornar chave_promovida e y, o que eu devo
 	 //retornar?
 	 return chave_promovida;
