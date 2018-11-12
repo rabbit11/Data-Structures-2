@@ -458,20 +458,21 @@ int main()
 		 if(x->num_chaves <= 1)
 		 	i+= 14;
 		 x->folha = p[i];
+		 i++;
 		 //obtendo os descendentes daquele nó
 		 char descendentes[ordem_ip];
-		 int z = 0;
+		 int z = 0, k = 1;
 		 if(x->folha == 'N'){
-			 for(int j = 0; p[i] != '*';j++){
+			 for(int j = 0; p[i] != '*' && p[i] != '\0';j++){
 				 descendentes[j] = p[i];
-				 printf("%c", descendentes[j]);
-				 i++;
-				 if(i % 3 == 0){
+				 if(k % 3 == 0){
+					 // descendentes[j] = '\0';
 					 x->desc[z] = (int)atoi(descendentes);
 					 z++;
 				 }
+				 i++;
+				 k++;
 			 }
-			 printf("CAGAIO\n");
 		 }
 		 // for(int i = 0; i < x->num_chaves; i++){
 		 // 	printf("%d | %s | %c | %d\n", x->num_chaves, x->chave[i].pk, x->folha, x->desc[i]);
