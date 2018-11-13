@@ -176,7 +176,7 @@ void libera_no(void *node, char ip);
 */
 
 /* Atualiza os dois índices com o novo registro inserido */
-void inserir_registro_indices(Indice *iprimary, Indice *ibrand, Produto j);
+void inserir_registro_indices(Indice *iprimary, Indice *ibrand, Produto product);
 
 //*****************funcoes referentes ao pseudo codigo de insercao em arvore b
 void* inserir_Btree_is_aux(Indice* ibrand, Produto product);
@@ -894,7 +894,7 @@ void libera_no(void *node, char ip){
 	 y->num_chaves = (ordem_ip - 1) / 2;
 	 y->desc[0] = -1;
 	 //TODO j = y->num_chaves -1, certo?
-	 for(int j = y->num_chaves - 1; i > 0; i--){
+	 for(int j = y->num_chaves - 1; j >= 0; j--){
 		 if(!chave_alocada && strcmp(product.pk, node->chave[i].pk) > 0){
 			 strcpy(y->chave[j].pk, product.pk);
 			 y->chave[j].rrn = rrn_product;
@@ -909,6 +909,7 @@ void libera_no(void *node, char ip){
 			 y->chave[j] = node->chave[i];
 			 y->desc[j + 1] = node->desc[i + 1];
 			 i = i - 1;
+			 printf("FFF %s %d\n", y->chave[j].pk, y->desc[i + 1]);
 		 }
 	 }
 	 if(!chave_alocada){
