@@ -194,13 +194,19 @@ int busca_ip(int raiz, char* pk, int imprimir);
 int busca_is(int raiz, char* nome, int imprimir);
 /* Exibe o jogo */
 int exibir_registro(int rrn);
+//imprime a arvore em pre ordem
+void printPreorder(int nivelArvore, int raiz);
+//imprime a arvore em ordem
+void printInorder(int raiz);
+
+
 
 int main()
 {
 	char *p; /* # */
   /* Arquivo */
 	int carregarArquivo = 0; nregistros = 0, nregistrosip = 0, nregistrosis = 0;
-	scanf("%d\n", &carregarArquivo); /* 1 (sim) | 0 (nao) */
+	scanf("%d%*c", &carregarArquivo); /* 1 (sim) | 0 (nao) */
 	if (carregarArquivo)
 		nregistros = carregar_arquivo();
 
@@ -239,7 +245,7 @@ int main()
 			break;
 		case 4: /* Listar todos os Produtos */
 			printf(INICIO_LISTAGEM);
-			//listar(iprimary, ibrand);
+			listar(iprimary, ibrand);
 			break;
 		case 5: /* Imprimir o arquivo de dados */
 			printf(INICIO_ARQUIVO);
@@ -326,14 +332,8 @@ int main()
 	    tam++;
 	    //verificando se e necessario completar com * o espaco dos descendentes
 	    //daquele node
-	    int filhos = 0;
-	    for(int j = 0; j < ordem_ip; j++){
-	        if(aux->desc[j] != -1){
-	            filhos++;
-	        }
-	    }
 		//TODO copiar no ARQUIVO_IS
-	    if(filhos){
+	    if(aux->folha != 'F'){
 	        int i;
 	        for(i = 0; i < aux->num_chaves + 1; i++){
 	            sprintf(temp + tam, "%03d", aux->desc[i]);
@@ -345,12 +345,6 @@ int main()
 				temp[tam++] = '*';
 				temp[tam++] = '*';
 			}
-	        // if(i < ordem_ip){
-	        //     for(int j = 0; j < (ordem_ip - i) * 3; j++, i++){
-	        //         temp[tam] = '*';
-	        //         tam++;
-	        //     }
-	        // }
 	    }else{
 	        int j;
 	        for(j = 0; j < ordem_ip * 3;j++){
@@ -367,66 +361,53 @@ int main()
 		 //TODO ao remover uma das chaves do nó, esta chave continua no arquivo
 		node_Btree_is* aux = (node_Btree_is*)salvar;
 		char* p = ARQUIVO_IS + (tamanho_registro_is * rrn);
-		// char temp[1000];
+		char temp[1000];
 
 		//escrevendo o numero de chaves naquele no em uma string temporaria
-		char tempChaves[ordem_is];
-		sprintf(tempChaves, "%03d", aux->num_chaves);
+		sprintf(temp, "%03d", aux->num_chaves);
 		int hash = 0;
-		char tempHash[TAM_STRING_INDICE + tamanho_registro_is + 2];
-		int tam = 0;
+		int tam = 3;
 		//passando pk e strings das chaves para um auxiliar
 		for(int i = 0; i < aux->num_chaves; i++){
-			sprintf((tempHash + tam), "%s %s", aux->chave[i].pk, aux->chave[i].string);
+			sprintf((temp + tam), "%s %s", aux->chave[i].pk, aux->chave[i].string);
 			tam += 11 + strlen(aux->chave[i].string);
 			// hash = ((ordem_is - 1) * 10 + 101) - strlen(aux->chave[i].string);
 			hash = 101 - strlen(aux->chave[i].string);
 			if(hash > 0){
 				//colocando o numero de # necessarios em uma string auxiliar
 				for(int j = 0; j < hash; j++){
-					tempHash[tam] = '#';
+					temp[tam] = '#';
 					tam++;
 				}
 			}
 	   }
-	   tempHash[tam] = '\0';
+
+	   temp[tam] = aux->folha;
+	   tam++;
 	   //verificando se e necessario completar com * o espaco dos descendentes
 	   //daquele node
-	   int filhos = 0;
-	   for(int j = 0; j < ordem_is; j++){
-		   if(aux->desc[j] != -1){
-			   filhos++;
+	   if(aux->folha != 'F'){
+		   int i;
+		   for(i = 0; i < aux->num_chaves + 1; i++){
+			   sprintf(temp + tam, "%03d", aux->desc[i]);
+			   tam += 3;
 		   }
+		   i--;
+		   for( ; i < ordem_ip; i++){
+			   temp[tam++] = '*';
+			   temp[tam++] = '*';
+			   temp[tam++] = '*';
+		   }
+		   temp[tam++] = '\0';
+	   }else{
+		   int j;
+		   for(j = 0; j < ordem_ip * 3;j++){
+			   temp[tam + j] = '*';
+		   }
+		   temp[tam + j] = '\0';
 	   }
-	   char tempFilhos[ordem_is];
- 	  if(filhos){
- 		  int i;
- 		  tam = 0;
- 		  for(i = 0; i < filhos; i++){
- 			  sprintf(tempFilhos + tam, "%03d", aux->desc[i]);
- 			  tam += 3;
- 		  }
- 		  if(filhos < ordem_ip){
- 			  for(int j = 0; j < (ordem_is - filhos) * 3; j++, i++){
- 				  tempFilhos[tam] = '*';
- 				  tam++;
- 			  }
- 		  }
- 		  tempFilhos[tam] = '\0';
- 	  }else{
- 		  int j;
- 		  for(j = 0; j < ordem_is * 3;j++){
- 			  tempFilhos[j] = '*';
- 		  }
- 		  tempFilhos[j] = '\0';
- 	  }
-	   sprintf(p,"%s%s%c%s", tempChaves, tempHash, aux->folha, tempFilhos);
-	   tam = strlen(tempChaves) + strlen(tempHash) + 1 + strlen(tempFilhos);
-
-	   for(int j = tam; j < tamanho_registro_is; j++){
-		   p[j] = '\0';
-	   }
-	   // strncpy(p, temp, tamanho_registro_is);
+	   strncpy(p, temp, tamanho_registro_is);
+	   p[tamanho_registro_is * (nregistrosis + 1)] = '\0';
 	 }
  }
  /*Lê um nó do arquivo de índice e retorna na estrutura*/
@@ -490,7 +471,6 @@ int main()
 		node_Btree_is* x = (node_Btree_is*)criar_no('s');
 		int i;
 		char nchaves[4];
-
 		//obtendo o numero de chaves naquele no
 		for(i = 0; i < 3; i++){
 		   nchaves[i] = s[i];
@@ -517,15 +497,20 @@ int main()
 		x->folha = s[i];
 		i++;
 		//obtendo os descendentes daquele nó
-		char descendentes[ordem_is];
+		char descendentes[ordem_ip], tempDesc[4];
 		int z = 0;
+		k = 1;
 		if(x->folha == 'N'){
-			for(int j = 0; s[i] != '*';j++){
+			for(int j = 0; s[i] != '*' && s[i] != '\0' && j < ordem_ip * 3;j++){
 				descendentes[j] = s[i];
-				i++;
-				if(i % 3 == 0){
-					x->desc[z] = (int)atoi(descendentes);
+				if(k % 3 == 0){
+					strncpy(tempDesc, descendentes + (z * 3), 3);
+					tempDesc[3] = '\0';
+					x->desc[z] = (int)atoi(tempDesc);
+					z++;
 				}
+				i++;
+				k++;
 			}
 		}
 		// for(int i = 0; i < x->num_chaves; i++){
@@ -801,7 +786,7 @@ void libera_no(void *node, char ip){
 	 		write_btree(x, ibrand->raiz, 's');
 
 	 		libera_no(x, 's');
-	 		libera_no(node, 's');
+	 		// libera_no(node, 's');
 			// free(chave_promovida);
 	 		return NULL;
 	 	   }
@@ -1039,8 +1024,8 @@ void libera_no(void *node, char ip){
 	//se o no nao for folha, podemos imprimir no no atual e chamar a funcao para um
 	//de seus descendentes
  	else{
-		// printf("%c\n", x->folha);
 		if(imprimir){
+			printf("%c\n", x->folha);
 			printf("%s", x->chave[0].pk);
 			for(int k = 1; k < x->num_chaves; k++){
 				printf(", %s", x->chave[k].pk);
@@ -1318,9 +1303,80 @@ void listar(Indice iprimary,Indice ibrand){
 	scanf("%d%*c", &opLista);
 
 	if(opLista == 1){
-
+		if(iprimary.raiz == -1){
+			printf(REGISTRO_N_ENCONTRADO);
+		}
+		printPreorder(0, iprimary.raiz);
 	}
 	else if(opLista == 2){
+		if(ibrand.raiz == -1){
+			printf(REGISTRO_N_ENCONTRADO);
+		}
+		printInorder(ibrand.raiz);
+	}
+}
 
+void printPreorder(int nivelArvore, int raiz){
+	node_Btree_ip* node = (node_Btree_ip*)criar_no('p');
+	node = (node_Btree_ip*)read_btree(raiz, 'p');
+
+	int imprimiu = 0;
+	if(node){
+		for(int i = 0; i < node->num_chaves; i++){
+			if(imprimiu == 1){
+				printf(", %s", node->chave[i].pk);
+			}else{
+				printf("%d - %s", nivelArvore, node->chave[i].pk);
+				imprimiu = 1;
+			}
+		}
+		printf("\n");
+
+		for(int j = 0; j < node->num_chaves + 1; j++){
+			if(node->desc[j] != -1){
+				printPreorder(nivelArvore, node->desc[j]);
+			}else{
+				return;
+			}
+		}
+	}
+}
+
+void printInorder(int raiz){
+	node_Btree_is* node = (node_Btree_is*)criar_no('s');
+	node = (node_Btree_is*)read_btree(raiz, 's');
+
+	int imprimiu = 0;
+
+	if(node){
+		for(int j = 0; j < node->num_chaves + 1; j++){
+			if(node->desc[j] != -1){
+				printInorder(node->desc[j]);
+			}else{
+				return;
+			}
+
+			int i;
+			for(i = 0; node->chave[j].string[i] != '$'; i++){
+				printf("%c", node->chave[j].string[i]);
+			}
+			int k = i;
+			while(k < TAM_MARCA){
+				printf("-");
+				k++;
+			}
+			printf(" ");
+			k = 0;
+			i++;
+			for(; node->chave[j].string[i] != '\0'; i++){
+				printf("%c", node->chave[j].string[i]);
+				k++;
+			}
+			while(k < TAM_NOME){
+				printf("-");
+				k++;
+			}
+			printf("\n");
+		}
 	}
 }
