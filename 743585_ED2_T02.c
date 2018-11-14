@@ -198,7 +198,8 @@ int exibir_registro(int rrn);
 void printPreorder(int nivelArvore, int raiz);
 //imprime a arvore em ordem
 void printInorder(int raiz);
-
+//imprime a string passada da forma listar
+void printString(char* string);
 
 
 int main()
@@ -1346,37 +1347,48 @@ void printInorder(int raiz){
 	node_Btree_is* node = (node_Btree_is*)criar_no('s');
 	node = (node_Btree_is*)read_btree(raiz, 's');
 
-	int imprimiu = 0;
+	char tempString[TAM_STRING_INDICE], *p;
 
 	if(node){
-		for(int j = 0; j < node->num_chaves + 1; j++){
-			if(node->desc[j] != -1){
-				printInorder(node->desc[j]);
-			}else{
-				return;
+		if(node->folha == 'N'){
+			for(int i = 0; i < node->num_chaves + 1; i++){
+				printInorder(node->desc[i]);
+				if(i < node->num_chaves)
+					printString(node->chave[i].string);
 			}
-
-			int i;
-			for(i = 0; node->chave[j].string[i] != '$'; i++){
-				printf("%c", node->chave[j].string[i]);
+		}else{
+			for(int j = 0; j < node->num_chaves; j++){
+				printString(node->chave[j].string);
 			}
-			int k = i;
-			while(k < TAM_MARCA){
-				printf("-");
-				k++;
-			}
-			printf(" ");
-			k = 0;
-			i++;
-			for(; node->chave[j].string[i] != '\0'; i++){
-				printf("%c", node->chave[j].string[i]);
-				k++;
-			}
-			while(k < TAM_NOME){
-				printf("-");
-				k++;
-			}
-			printf("\n");
+			return;
 		}
 	}
+}
+
+void printString(char* string){
+	char tempString[TAM_STRING_INDICE];
+	char* p;
+
+	int j = 0;
+
+	strncpy(tempString, string, TAM_STRING_INDICE);
+
+	p = strtok(tempString, "$\0");
+	printf("%s", p);
+
+	int complete = strlen(p);
+	while(complete < TAM_MARCA){
+		printf("-");
+		complete++;
+	}
+
+	p = strtok(NULL, "$\0");
+	printf("%s", p);
+
+	complete = strlen(p);
+	while(complete < TAM_MARCA){
+		printf("-");
+		complete++;
+	}
+	printf("\n");
 }
