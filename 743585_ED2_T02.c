@@ -993,29 +993,15 @@ void libera_no(void *node, char ip){
 		 return 0;
 	 }
  	node_Btree_ip* x = (node_Btree_ip*)read_btree(raiz, 'p');
- 	//TODO seria melhor retornar o nó ou sua posicao de alguma forma?
- 	// node_Btree_ip* retorno;
- 	int i = 0;
 
+ 	int i = 0;
  	//busca pelas chaves armazenadas em determinado nó
  	while(i < x->num_chaves && strcmp(pk, x->chave[i].pk) > 0){
  		i = i + 1;
  	}
  	//checa se o ponteiro i aponta para o produto procurado
  	if(i <= x->num_chaves && strcmp(pk, x->chave[i].pk) == 0){
-		// char* p = ARQUIVO_IP + (tamanho_registro_ip * x->chave[i].rrn);
-		// char* tempRRN = NULL;
-		// //posicionando o ponteiro na posicao onde se encontra o rrn do arquivo de dados
-		// p += 3 + 10;
-		//
-		// for(int i = 0; i < 4; i++){
-		// 	tempRRN[i] = p[i];
-		// }
-		//
-		// libera_no(x, 'p');
-		// return atoi(tempRRN);
-
-		return raiz;
+		return x->chave[i].rrn;
  	}
 	//verifica se o no atual é folha, se sim a busca é encerrada
  	if(x->folha == 'F'){
@@ -1119,6 +1105,8 @@ Produto recuperar_registro(int rrn){
 	temp[192] = '\0';
 	Produto j;
 	p = strtok(temp,"@");
+	strcpy(j.pk,p);
+	p = strtok(NULL,"@");
 	strcpy(j.nome,p);
 	p = strtok(NULL,"@");
 	strcpy(j.marca,p);
@@ -1164,8 +1152,6 @@ int exibir_registro(int rrn)
 
 	return 1;
 }
-//TODO devo desalocar todos os nós das arvores que eu usar?
-
 //verifica se a chave passada como parametro ja se encontra em ip
 int verifica_chave(char* chave, Indice iprimary){
 	int foundIt = 0;
@@ -1271,7 +1257,7 @@ int alterar_desconto(Indice* iprimary){
  void buscar(Indice iprimary,Indice ibrand){
 	 //TODO falta impressao na tela
 	 int opBusca;
-	 char* chaveBusca;
+	 char* chaveBusca = (char*)calloc(1, sizeof(char));
 
 	 scanf("%d%*c", &opBusca);
 
@@ -1279,23 +1265,41 @@ int alterar_desconto(Indice* iprimary){
 	 switch(opBusca){
 		 case 1://busca pela pk
 		 	scanf("%[^\n]%*c", chaveBusca);
+			printf("Busca por %s. Nos percorridos:\n", chaveBusca);
 			foundIt = busca_ip(iprimary.raiz, chaveBusca, 1);
-			if(foundIt == -1)
+			if(foundIt == -1){
+				free(chaveBusca);
 				printf(REGISTRO_N_ENCONTRADO);
-			else
+				return;
+			}
+			else{
+				printf("\n");
 				exibir_registro(foundIt);
+				free(chaveBusca);
+				return;
+			}
 		 break;
 
 		 case 2://busca pela marca/nome
 			 scanf("%[^\n]%*c", chaveBusca);
 			 foundIt = busca_ip(ibrand.raiz, chaveBusca, 1);
-			 if(foundIt == -1)
+			 if(foundIt == -1){
 			 	printf(REGISTRO_N_ENCONTRADO);
-			 else
+				free(chaveBusca);
+				return;
+			}
+			 else{
+				 //TODO checar formatacao impressao
 			 	exibir_registro(foundIt);
+				free(chaveBusca);
+				return;
+			}
+		 break;
+
+		 default:
 		 break;
 	 }
-
+	 return;
  }
 //lista todos os registros presentes nos arquivos de indice
 void listar(Indice iprimary,Indice ibrand){
@@ -1307,7 +1311,7 @@ void listar(Indice iprimary,Indice ibrand){
 		if(iprimary.raiz == -1){
 			printf(REGISTRO_N_ENCONTRADO);
 		}
-		printPreorder(0, iprimary.raiz);
+		printPreorder(1, iprimary.raiz);
 	}
 	else if(opLista == 2){
 		if(ibrand.raiz == -1){
@@ -1335,7 +1339,7 @@ void printPreorder(int nivelArvore, int raiz){
 
 		for(int j = 0; j < node->num_chaves + 1; j++){
 			if(node->desc[j] != -1){
-				printPreorder(nivelArvore, node->desc[j]);
+				printPreorder(nivelArvore++, node->desc[j]);
 			}else{
 				return;
 			}
