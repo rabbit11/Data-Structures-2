@@ -268,7 +268,7 @@ int main()
 			if(!*ARQUIVO_IS)
 				puts(ARQUIVO_VAZIO);
 			else
-				for(p = ARQUIVO_IS; *p!='\0'; p+=tamanho_registro_is)
+				for(p = ARQUIVO_IS; *p!='\0' && *p!= '\00'; p+=tamanho_registro_is)
 				{
 					fwrite( p , 1 ,tamanho_registro_is,stdout);
 					puts("");
@@ -362,7 +362,7 @@ int main()
 		 //TODO ao remover uma das chaves do nó, esta chave continua no arquivo
 		node_Btree_is* aux = (node_Btree_is*)salvar;
 		char* p = ARQUIVO_IS + (tamanho_registro_is * rrn);
-		char temp[1000];
+		char temp[2000];
 
 		//escrevendo o numero de chaves naquele no em uma string temporaria
 		sprintf(temp, "%03d", aux->num_chaves);
@@ -370,9 +370,12 @@ int main()
 		int tam = 3;
 		//passando pk e strings das chaves para um auxiliar
 		for(int i = 0; i < aux->num_chaves; i++){
-			sprintf((temp + tam), "%s %s", aux->chave[i].pk, aux->chave[i].string);
-			tam += 11 + strlen(aux->chave[i].string);
-			// hash = ((ordem_is - 1) * 10 + 101) - strlen(aux->chave[i].string);
+			// sprintf((temp + tam), "%s %s", aux->chave[i].pk, aux->chave[i].string);
+			// tam += 11 + strlen(aux->chave[i].string);
+			// hash = 101 - strlen(aux->chave[i].string);
+
+			sprintf((temp + tam), "%s%s", aux->chave[i].pk, aux->chave[i].string);
+			tam += strlen(aux->chave[i].pk) + strlen(aux->chave[i].string);
 			hash = 101 - strlen(aux->chave[i].string);
 			if(hash > 0){
 				//colocando o numero de # necessarios em uma string auxiliar
@@ -398,13 +401,13 @@ int main()
 			   temp[tam++] = '*';
 			   temp[tam++] = '*';
 		   }
-		   // temp[tam++] = '\0';
+		   temp[tam++] = '\0';
 	   }else{
 		   int j;
 		   for(j = 0; j < ordem_ip * 3;j++){
 			   temp[tam + j] = '*';
 		   }
-		   // temp[tam + j] = '\0';
+		   temp[tam + j] = '\0';
 	   }
 	   strncpy(p, temp, tamanho_registro_is);
 	   p[tamanho_registro_is * (nregistrosis + 1)] = '\0';
@@ -483,7 +486,7 @@ int main()
 		for(int j = 0; j < x->num_chaves; j++){
 			k = 0, tamString = 0;
 			strncpy(x->chave[j].pk, (s + i), 10);
-			i+= 11;
+			i+= 10;
 			//descobrindo o tamanho da string sem # e \0
 			for(k = 0; s[i + k] != '#' && k < 101; k++){
 				tamString++;
@@ -1048,6 +1051,7 @@ void libera_no(void *node, char ip){
  }
  //efetua busca no indice ibrand
  int* busca_is(int raiz, char* nome, char* marca, int imprimir){
+	 //TODO nao funciona corretamente
 	 if(raiz == -1){
 		 return 0;
 	 }
@@ -1056,13 +1060,11 @@ void libera_no(void *node, char ip){
 	char tempString[TAM_STRING_INDICE];
 
 	sprintf(tempString, "%s$%s", nome, marca);
- 	//TODO seria melhor retornar o nó ou sua posicao de alguma forma?
- 	// node_Btree_ip* retorno;
+
  	int i = 0;
 
  	//busca pelas chaves armazenadas em determinado nó
 	while(i < x->num_chaves && strcmp(nome, x->chave[i].string) > 0){
-		printf("FFF %s %s\n", nome, x->chave[i].string);
  		i = i + 1;
  	}
  	//checa se o ponteiro i aponta para o produto procurado
@@ -1072,6 +1074,7 @@ void libera_no(void *node, char ip){
 			for(int k = 1; k < x->num_chaves; k++){
 				printf(", %s", x->chave[k].string);
 			}
+			printf("\n");
 		}
 		libera_no(x, 's');
 		int* tempRetorno = &raiz;
@@ -1083,6 +1086,8 @@ void libera_no(void *node, char ip){
 			for(int k = 1; k < x->num_chaves; k++){
 				printf(", %s", x->chave[k].string);
 			}
+			printf("\n");
+			printf("\n");
 		}
 		libera_no(x, 's');
  		return NULL;
@@ -1093,6 +1098,8 @@ void libera_no(void *node, char ip){
 			for(int k = 1; k < x->num_chaves; k++){
 				printf(", %s", x->chave[k].string);
 			}
+			printf("\n");
+
 			int tempRetorno = (x->desc[i]);
 			libera_no(x, 'p');
 			return busca_is(tempRetorno, nome, marca, 1);
@@ -1325,13 +1332,14 @@ int alterar_desconto(Indice* iprimary){
 		 break;
 
 		 case 2://busca pela marca/nome
+		 	 scanf("%[^\n]%*c", marcaBusca);
 			 scanf("%[^\n]%*c", nomeBusca);
-			 scanf("%[^\n]%*c", marcaBusca);
 
-			 printf("Busca por %s$%s\n Nos percorridos:\n", marcaBusca, nomeBusca);
+			 printf("Busca por %s$%s.\nNos percorridos:\n", marcaBusca, nomeBusca);
 
 			 foundIt = busca_is(ibrand.raiz, nomeBusca, marcaBusca, 1);
 			 if(foundIt == NULL){
+				printf("\n");
 			 	printf(REGISTRO_N_ENCONTRADO);
 				free(chaveBusca);
 				return;
@@ -1431,7 +1439,7 @@ void printString(char* string){
 	}
 
 	p = strtok(NULL, "$\0");
-	printf("%s", p);
+	printf(" %s", p);
 
 	complete = strlen(p);
 	while(complete < TAM_MARCA){
