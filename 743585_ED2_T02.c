@@ -411,6 +411,7 @@ int main()
 	   }
 	   strncpy(p, temp, tamanho_registro_is);
 	   p[tamanho_registro_is * (nregistrosis + 1)] = '\0';
+	   printf("FF %s\n", temp);
 	 }
  }
  /*Lê um nó do arquivo de índice e retorna na estrutura*/
@@ -470,6 +471,7 @@ int main()
 		 return x;
  	}
 	if(ip == 's'){
+		//TODO em algum lugar le ou escreve $ a mais
 		char* s = ARQUIVO_IS + (rrn * tamanho_registro_is);
 		node_Btree_is* x = (node_Btree_is*)criar_no('s');
 		int i;
@@ -492,7 +494,7 @@ int main()
 				tamString++;
 			}
 			strncpy(x->chave[j].string, (s + i), tamString);
-			x->chave[j].string[tamString + 1] = '\0';
+			x->chave[j].string[tamString] = '\0';
 			x->chave[j].pk[10] = '\0';
 			i+= 101;
 		}
@@ -516,9 +518,9 @@ int main()
 				k++;
 			}
 		}
-		// for(int i = 0; i < x->num_chaves; i++){
-		// 	printf("%d !! %s !! %s !! %c !! %d\n", x->num_chaves, x->chave[i].pk, x->chave[i].string, x->folha, x->desc[i]);
-		// }
+		for(int i = 0; i < x->num_chaves; i++){
+			printf("%d !! %s !! %s !! %c !! %d\n", x->num_chaves, x->chave[i].pk, x->chave[i].string, x->folha, x->desc[i]);
+		}
 		return x;
 	}
 	else{
@@ -1059,16 +1061,16 @@ void libera_no(void *node, char ip){
 
 	char tempString[TAM_STRING_INDICE];
 
-	sprintf(tempString, "%s$%s", nome, marca);
+	sprintf(tempString, "%s$%s", marca, nome);
 
  	int i = 0;
 
  	//busca pelas chaves armazenadas em determinado nó
-	while(i < x->num_chaves && strcmp(nome, x->chave[i].string) > 0){
+	while(i < x->num_chaves && strcmp(tempString, x->chave[i].string) > 0){
  		i = i + 1;
  	}
  	//checa se o ponteiro i aponta para o produto procurado
-	if(i <= x->num_chaves && strcmp(nome, x->chave[i].string) == 0){
+	if(i <= x->num_chaves && strcmp(tempString, x->chave[i].string) == 0){
 		if(imprimir == 1){
 			printf("%s", x->chave[0].string);
 			for(int k = 1; k < x->num_chaves; k++){
