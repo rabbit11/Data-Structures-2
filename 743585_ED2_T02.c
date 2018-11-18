@@ -189,9 +189,9 @@ int verifica_chave(char* chave, Indice iprimary);
 
 Produto recuperar_registro(int rrn);
 //busca determinada chave no indice ip
-int busca_ip(int raiz, char* pk, int imprimir);
+int* busca_ip(int raiz, char* pk, int imprimir);
 //busca determinado nome no indice ibrand
-int busca_is(int raiz, char* nome, int imprimir);
+int* busca_is(int raiz, char* nome, char* marca, int imprimir);
 /* Exibe o jogo */
 int exibir_registro(int rrn);
 //imprime a arvore em pre ordem
@@ -382,7 +382,6 @@ int main()
 				}
 			}
 	   }
-
 	   temp[tam] = aux->folha;
 	   tam++;
 	   //verificando se e necessario completar com * o espaco dos descendentes
@@ -399,13 +398,13 @@ int main()
 			   temp[tam++] = '*';
 			   temp[tam++] = '*';
 		   }
-		   temp[tam++] = '\0';
+		   // temp[tam++] = '\0';
 	   }else{
 		   int j;
 		   for(j = 0; j < ordem_ip * 3;j++){
 			   temp[tam + j] = '*';
 		   }
-		   temp[tam + j] = '\0';
+		   // temp[tam + j] = '\0';
 	   }
 	   strncpy(p, temp, tamanho_registro_is);
 	   p[tamanho_registro_is * (nregistrosis + 1)] = '\0';
@@ -988,7 +987,7 @@ void libera_no(void *node, char ip){
 	 return chave_promovida;
 }
 //efetua busca no indice iprimary
- int busca_ip(int raiz, char* pk, int imprimir){
+ int* busca_ip(int raiz, char* pk, int imprimir){
 	 if(raiz == -1){
 		 return 0;
 	 }
@@ -997,57 +996,96 @@ void libera_no(void *node, char ip){
  	int i = 0;
  	//busca pelas chaves armazenadas em determinado nó
  	while(i < x->num_chaves && strcmp(pk, x->chave[i].pk) > 0){
- 		i = i + 1;
+ 		i++;
  	}
  	//checa se o ponteiro i aponta para o produto procurado
  	if(i <= x->num_chaves && strcmp(pk, x->chave[i].pk) == 0){
-		return x->chave[i].rrn;
+		if(imprimir == 1){
+			printf("%s", x->chave[0].pk);
+			for(int k = 1; k < x->num_chaves; k++){
+				printf(", %s", x->chave[k].pk);
+			}
+			printf("\n");
+		}
+		int* tempRetorno = &(x->chave[i].rrn);
+		libera_no(x, 'p');
+		return tempRetorno;
  	}
 	//verifica se o no atual é folha, se sim a busca é encerrada
  	if(x->folha == 'F'){
+		if(imprimir == 1){
+			printf("%s", x->chave[0].pk);
+			for(int k = 1; k < x->num_chaves; k++){
+				printf(", %s", x->chave[k].pk);
+			}
+			printf("\n");
+			printf("\n");
+		}
 		libera_no(x, 'p');
- 		return 0;
+ 		return NULL;
  	}
 	//se o no nao for folha, podemos imprimir no no atual e chamar a funcao para um
 	//de seus descendentes
  	else{
 		if(imprimir){
-			printf("%c\n", x->folha);
+			// printf("%c\n", x->folha);
 			printf("%s", x->chave[0].pk);
 			for(int k = 1; k < x->num_chaves; k++){
 				printf(", %s", x->chave[k].pk);
 			}
+			printf("\n");
 			// libera_no(x, 'p');
-			return busca_ip(x->desc[i], pk, 1);
+			int tempRetorno = (x->desc[i]);
+			libera_no(x, 'p');
+			return busca_ip(tempRetorno, pk, 1);
 		}
 		else{
-			// libera_no(x, 'p');
-			return busca_ip(x->desc[i], pk, 0);
+			int tempRetorno = (x->desc[i]);
+			libera_no(x, 'p');
+			return busca_ip(tempRetorno, pk, 0);
 		}
 	}
  }
  //efetua busca no indice ibrand
- int busca_is(int raiz, char* nome, int imprimir){
-	 if(raiz){
+ int* busca_is(int raiz, char* nome, char* marca, int imprimir){
+	 if(raiz == -1){
 		 return 0;
 	 }
  	node_Btree_is* x = (node_Btree_is*)read_btree(raiz, 's');
+
+	char tempString[TAM_STRING_INDICE];
+
+	sprintf(tempString, "%s$%s", nome, marca);
  	//TODO seria melhor retornar o nó ou sua posicao de alguma forma?
  	// node_Btree_ip* retorno;
  	int i = 0;
 
  	//busca pelas chaves armazenadas em determinado nó
- 	while(i < x->num_chaves && strcmp(nome, x->chave[i].string) > 0){
+	while(i < x->num_chaves && strcmp(nome, x->chave[i].string) > 0){
+		printf("FFF %s %s\n", nome, x->chave[i].string);
  		i = i + 1;
  	}
  	//checa se o ponteiro i aponta para o produto procurado
- 	if(i <= x->num_chaves && strcmp(nome, x->chave[i].string) == 0){
+	if(i <= x->num_chaves && strcmp(nome, x->chave[i].string) == 0){
+		if(imprimir == 1){
+			printf("%s", x->chave[0].string);
+			for(int k = 1; k < x->num_chaves; k++){
+				printf(", %s", x->chave[k].string);
+			}
+		}
 		libera_no(x, 's');
- 		return raiz;
+		int* tempRetorno = &raiz;
+ 		return tempRetorno;
  	}
  	if(x->folha == 'F'){
+		if(imprimir == 1){
+			printf("%s", x->chave[0].string);
+			for(int k = 1; k < x->num_chaves; k++){
+				printf(", %s", x->chave[k].string);
+			}
+		}
 		libera_no(x, 's');
- 		return 0;
+ 		return NULL;
  	}
  	else{
 		if(imprimir){
@@ -1055,10 +1093,15 @@ void libera_no(void *node, char ip){
 			for(int k = 1; k < x->num_chaves; k++){
 				printf(", %s", x->chave[k].string);
 			}
-			return busca_is(x->desc[i], nome, 1);
+			int tempRetorno = (x->desc[i]);
+			libera_no(x, 'p');
+			return busca_is(tempRetorno, nome, marca, 1);
 		}
-		else
-			return busca_is(x->desc[i], nome, 0);
+		else{
+			int tempRetorno = (x->desc[i]);
+			libera_no(x, 'p');
+			return busca_is(tempRetorno, nome, marca, 0);
+		}
  	}
  }
 /* Recebe do usuário uma string simulando o arquivo completo e retorna o número
@@ -1154,7 +1197,7 @@ int exibir_registro(int rrn)
 }
 //verifica se a chave passada como parametro ja se encontra em ip
 int verifica_chave(char* chave, Indice iprimary){
-	int foundIt = 0;
+	int* foundIt = NULL;
 	foundIt = busca_ip(iprimary.raiz, chave, 0);
 	if(foundIt){
 		printf(ERRO_PK_REPETIDA, chave);
@@ -1210,7 +1253,7 @@ int alterar_desconto(Indice* iprimary){
 	//recebe pk do usuario
 	scanf("%[^\n]%*c", pkBusca);
 	//busca pk no indice primario
-	int retornoRRN = busca_ip(iprimary->raiz, pkBusca, 0);
+	int* retornoRRN = busca_ip(iprimary->raiz, pkBusca, 0);
 
 	if(!retornoRRN){
 		printf(REGISTRO_N_ENCONTRADO);
@@ -1228,7 +1271,7 @@ int alterar_desconto(Indice* iprimary){
 			i = atoi(desconto);
 		}
 
-		char* p = ARQUIVO_IP + (tamanho_registro_ip * retornoRRN);
+		char* p = ARQUIVO_IP + (tamanho_registro_ip * *retornoRRN);
 		char* tempRRN = NULL;
 		//posicionando o ponteiro na posicao onde se encontra o rrn do arquivo de dados
 		p += 3 + 10;
@@ -1255,42 +1298,47 @@ int alterar_desconto(Indice* iprimary){
 }
 //efetua busca por um registro em um dos arquivos de indice
  void buscar(Indice iprimary,Indice ibrand){
-	 //TODO falta impressao na tela
 	 int opBusca;
-	 char* chaveBusca = (char*)calloc(1, sizeof(char));
+	 char* chaveBusca = (char*)calloc(TAM_PRIMARY_KEY, sizeof(char));
+	 char* nomeBusca = (char*)calloc(TAM_NOME, sizeof(char));
+	 char* marcaBusca = (char*)calloc(TAM_MARCA, sizeof(char));
 
 	 scanf("%d%*c", &opBusca);
 
-	 int foundIt = -1;
+	 int* foundIt = NULL;
 	 switch(opBusca){
 		 case 1://busca pela pk
 		 	scanf("%[^\n]%*c", chaveBusca);
 			printf("Busca por %s. Nos percorridos:\n", chaveBusca);
 			foundIt = busca_ip(iprimary.raiz, chaveBusca, 1);
-			if(foundIt == -1){
+			if(!foundIt){
 				free(chaveBusca);
 				printf(REGISTRO_N_ENCONTRADO);
 				return;
 			}
 			else{
 				printf("\n");
-				exibir_registro(foundIt);
+				exibir_registro(*foundIt);
 				free(chaveBusca);
 				return;
 			}
 		 break;
 
 		 case 2://busca pela marca/nome
-			 scanf("%[^\n]%*c", chaveBusca);
-			 foundIt = busca_ip(ibrand.raiz, chaveBusca, 1);
-			 if(foundIt == -1){
+			 scanf("%[^\n]%*c", nomeBusca);
+			 scanf("%[^\n]%*c", marcaBusca);
+
+			 printf("Busca por %s$%s\n Nos percorridos:\n", marcaBusca, nomeBusca);
+
+			 foundIt = busca_is(ibrand.raiz, nomeBusca, marcaBusca, 1);
+			 if(foundIt == NULL){
 			 	printf(REGISTRO_N_ENCONTRADO);
 				free(chaveBusca);
 				return;
 			}
 			 else{
 				 //TODO checar formatacao impressao
-			 	exibir_registro(foundIt);
+			 	exibir_registro(*foundIt);
 				free(chaveBusca);
 				return;
 			}
@@ -1339,7 +1387,7 @@ void printPreorder(int nivelArvore, int raiz){
 
 		for(int j = 0; j < node->num_chaves + 1; j++){
 			if(node->desc[j] != -1){
-				printPreorder(nivelArvore++, node->desc[j]);
+				printPreorder(nivelArvore + 1, node->desc[j]);
 			}else{
 				return;
 			}
@@ -1350,8 +1398,6 @@ void printPreorder(int nivelArvore, int raiz){
 void printInorder(int raiz){
 	node_Btree_is* node = (node_Btree_is*)criar_no('s');
 	node = (node_Btree_is*)read_btree(raiz, 's');
-
-	char tempString[TAM_STRING_INDICE], *p;
 
 	if(node){
 		if(node->folha == 'N'){
@@ -1372,8 +1418,6 @@ void printInorder(int raiz){
 void printString(char* string){
 	char tempString[TAM_STRING_INDICE];
 	char* p;
-
-	int j = 0;
 
 	strncpy(tempString, string, TAM_STRING_INDICE);
 
