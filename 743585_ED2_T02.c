@@ -268,7 +268,7 @@ int main()
 			if(!*ARQUIVO_IS)
 				puts(ARQUIVO_VAZIO);
 			else
-				for(p = ARQUIVO_IS; *p!='\0' && *p!= '\00'; p+=tamanho_registro_is)
+				for(p = ARQUIVO_IS; *p!='\0'; p+=tamanho_registro_is)
 				{
 					fwrite( p , 1 ,tamanho_registro_is,stdout);
 					puts("");
@@ -375,7 +375,7 @@ int main()
 			// hash = 101 - strlen(aux->chave[i].string);
 
 			sprintf((temp + tam), "%s%s", aux->chave[i].pk, aux->chave[i].string);
-			tam += strlen(aux->chave[i].pk) + strlen(aux->chave[i].string);
+			tam += 10 + strlen(aux->chave[i].string);
 			hash = 101 - strlen(aux->chave[i].string);
 			if(hash > 0){
 				//colocando o numero de # necessarios em uma string auxiliar
@@ -411,7 +411,6 @@ int main()
 	   }
 	   strncpy(p, temp, tamanho_registro_is);
 	   p[tamanho_registro_is * (nregistrosis + 1)] = '\0';
-	   printf("FF %s\n", temp);
 	 }
  }
  /*Lê um nó do arquivo de índice e retorna na estrutura*/
@@ -496,6 +495,7 @@ int main()
 			strncpy(x->chave[j].string, (s + i), tamString);
 			x->chave[j].string[tamString] = '\0';
 			x->chave[j].pk[10] = '\0';
+
 			i+= 101;
 		}
 		//obtendo se aquele nó é ou não folha
@@ -506,7 +506,7 @@ int main()
 		int z = 0;
 		k = 1;
 		if(x->folha == 'N'){
-			for(int j = 0; s[i] != '*' && s[i] != '\0' && j < ordem_ip * 3;j++){
+			for(int j = 0;s[i] != '*' && s[i] != '\0' && j < ordem_ip * 3;j++){
 				descendentes[j] = s[i];
 				if(k % 3 == 0){
 					strncpy(tempDesc, descendentes + (z * 3), 3);
@@ -518,9 +518,9 @@ int main()
 				k++;
 			}
 		}
-		for(int i = 0; i < x->num_chaves; i++){
-			printf("%d !! %s !! %s !! %c !! %d\n", x->num_chaves, x->chave[i].pk, x->chave[i].string, x->folha, x->desc[i]);
-		}
+		// for(int i = 0; i < x->num_chaves; i++){
+		// 	printf("%d !! %s !! %s !! %c !! %d\n", x->num_chaves, x->chave[i].pk, x->chave[i].string, x->folha, x->desc[i]);
+		// }
 		return x;
 	}
 	else{
@@ -765,7 +765,6 @@ void libera_no(void *node, char ip){
 
 	 char tempString[TAM_STRING_INDICE];
 	 sprintf(tempString, "%s$%s", product.marca, product.nome);
-
 	 int i;
 	 //TODO dar free no "retorno"
 	 //verifica se o no recuperado é folha
@@ -824,6 +823,7 @@ void libera_no(void *node, char ip){
 			   }
 			   product.marca[j] = '\0';
 			   int k;
+			   j++;
 			   for(k = 0; chave_promovida->chave.string[j] != '\0'; k++, j++){
 				   product.nome[k] = chave_promovida->chave.string[j];
 			   }
