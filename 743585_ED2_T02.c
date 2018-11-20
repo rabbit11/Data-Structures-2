@@ -192,7 +192,7 @@ Produto recuperar_registro(int rrn);
 //busca determinada chave no indice ip
 int* busca_ip(int raiz, char* pk, int imprimir);
 //busca determinado nome no indice ibrand
-int* busca_is(int raiz, char* nome, char* marca, int imprimir);
+char* busca_is(int raiz, char* nome, char* marca, int imprimir);
 /* Exibe o jogo */
 int exibir_registro(int rrn);
 //imprime a arvore em pre ordem
@@ -333,7 +333,6 @@ int main()
 	     p = ARQUIVO_IP + (tamanho_registro_ip * rrn);
 	     sprintf(temp, "%03d", aux->num_chaves);
 	     //verificando se é necessario completar com # os espaços em branco
-	     int hash = 0;
 	     int tam = 3;
 
 	    for(int i = 0; i < aux->num_chaves; i++){
@@ -1089,7 +1088,7 @@ void libera_no(void *node, char ip){
 	}
  }
  //efetua busca no indice ibrand
- int* busca_is(int raiz, char* nome, char* marca, int imprimir){
+ char* busca_is(int raiz, char* nome, char* marca, int imprimir){
 	 if(raiz == -1){
 		 return 0;
 	 }
@@ -1114,8 +1113,9 @@ void libera_no(void *node, char ip){
 			}
 			printf("\n");
 		}
+		char* tempRetorno = (char*)calloc(TAM_PRIMARY_KEY, sizeof(char));
+		strncpy(tempRetorno, x->chave[i].pk, 10);
 		libera_no(x, 's');
-		int* tempRetorno = &raiz;
  		return tempRetorno;
  	}
  	if(x->folha == 'F'){
@@ -1351,6 +1351,8 @@ int alterar_desconto(Indice* iprimary){
 	 scanf("%d%*c", &opBusca);
 
 	 int* foundIt = NULL;
+	 char* foundItIs = NULL;
+
 	 switch(opBusca){
 		 case 1://busca pela pk
 		 	scanf("%[^\n]%*c", chaveBusca);
@@ -1375,15 +1377,15 @@ int alterar_desconto(Indice* iprimary){
 
 			 printf("Busca por %s$%s.\nNos percorridos:\n", marcaBusca, nomeBusca);
 
-			 foundIt = busca_is(ibrand.raiz, nomeBusca, marcaBusca, 1);
-			 if(foundIt == NULL){
-				printf("\n");
+			 foundItIs = busca_is(ibrand.raiz, nomeBusca, marcaBusca, 1);
+			 if(foundItIs == NULL){
 			 	printf(REGISTRO_N_ENCONTRADO);
 				free(chaveBusca);
 				return;
 			}
 			 else{
-				 //TODO checar formatacao impressao
+				 printf("\n");
+				foundIt = busca_ip(iprimary.raiz, foundItIs, 0);
 			 	exibir_registro(*foundIt);
 				free(chaveBusca);
 				return;
@@ -1471,7 +1473,7 @@ void printString(char* string){
 	printf("%s", p);
 
 	int complete = strlen(p);
-	while(complete < TAM_MARCA){
+	while(complete < TAM_MARCA - 1){
 		printf("-");
 		complete++;
 	}
@@ -1480,7 +1482,7 @@ void printString(char* string){
 	printf(" %s", p);
 
 	complete = strlen(p);
-	while(complete < TAM_MARCA){
+	while(complete < TAM_MARCA - 1){
 		printf("-");
 		complete++;
 	}
