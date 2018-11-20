@@ -406,20 +406,19 @@ int main()
 
 			sprintf((temp + tam), "%s%s", aux->chave[i].pk, aux->chave[i].string);
 			tam += 10 + strlen(aux->chave[i].string);
-			if(tam > 111)
-				tam = 111;
 			hash = 101 - strlen(aux->chave[i].string);
 			if(hash > 0){
-				//colocando o numero de # necessarios em uma string auxiliar
+				//colocando o numero de # para preencher o espaco em branco da string
 				for(int j = 0; j < hash; j++){
 					temp[tam] = '#';
 					tam++;
 				}
 			}
 	   }
-	   for(; (i + 1) < (ordem_is - 1); i++){
+	   //colocando o numero de # para preencher o espaco sem registros
+	   for(; i < (ordem_is - 1); i++){
 		   for(int j = 0; j < 111; j++){
-		   	sprintf(temp + tam, "#");
+		   	temp[tam] = '#';
 			tam++;
 		   }
 	   }
@@ -540,7 +539,6 @@ int main()
 
 			i+= 101;
 		}
-		i++;
 		while(s[i] == '#'){
 			i++;
 		}
