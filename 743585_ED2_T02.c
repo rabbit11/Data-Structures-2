@@ -39,7 +39,7 @@
 #define REGISTRO_N_ENCONTRADO 		"Registro(s) nao encontrado!\n"
 #define CAMPO_INVALIDO 				"Campo invalido! Informe novamente.\n"
 #define ERRO_PK_REPETIDA 			"ERRO: Ja existe um registro com a chave primaria: %s.\n"
-#define ARQUIVO_VAZIO 				"Arquivo vazio!\n"
+#define ARQUIVO_VAZIO 				"Arquivo vazio!"
 #define INICIO_BUSCA 				"********************************BUSCAR********************************\n"
 #define INICIO_LISTAGEM				"********************************LISTAR********************************\n"
 #define INICIO_ALTERACAO 			"********************************ALTERAR*******************************\n"
@@ -132,7 +132,7 @@ int tamanho_registro_is;
  /********************FUNÇÕES DO MENU*********************/
  void cadastrar(Indice* iprimary, Indice* ibrand);
 
- int alterar(Indice iprimary);
+ int alterar_desconto(Indice* iprimary);
 
  void buscar(Indice iprimary,Indice ibrand);
 
@@ -239,16 +239,17 @@ int main()
 			cadastrar(&iprimary, &ibrand);
 			break;
 		case 2: /* Alterar o desconto de um Produto */
-			// printf(INICIO_ALTERACAO);
-			// if (alterar(iprimary))
-			//  	printf(SUCESSO);
-			// else
-			//  	printf(FALHA);
+			printf(INICIO_ALTERACAO);
+			if (alterar_desconto(&iprimary))
+			 	printf(SUCESSO);
+			else
+			 	printf(FALHA);
 			break;
 		case 3: /* Buscar um Produto */
 			printf(INICIO_BUSCA);
 			buscar(iprimary, ibrand);
 			break;
+
 		case 4: /* Listar todos os Produtos */
 			printf(INICIO_LISTAGEM);
 			listar(iprimary, ibrand);
@@ -340,16 +341,6 @@ int main()
 	        tam += 10;
 	        sprintf((temp + tam),"%04d", aux->chave[i].rrn);
 	        tam += 4;
-	         //colocando o numero de # necessarios em uma string auxiliars
-	        //  if(aux->num_chaves < ordem_ip - 1){
-	        //      hash = (ordem_ip - 1) - aux->num_chaves;
-	        //      hash = hash * 14;
-	        //      //passando pk e rrn das chaves para um auxiliar
-	        //      for(int i = 0; i < hash; i++){
-	        //          temp[tam] = '#';
-	        //          tam++;
-	        //      }
-	        // }
 	    }
 		int num_chaves = aux->num_chaves;
 		while(num_chaves < ordem_ip - 1){
@@ -1300,39 +1291,29 @@ int alterar_desconto(Indice* iprimary){
 	//busca pk no indice primario
 	int* retornoRRN = busca_ip(iprimary->raiz, pkBusca, 0);
 
-	if(!retornoRRN){
+	if(!retornoRRN || nregistros == 0){
 		printf(REGISTRO_N_ENCONTRADO);
 		return 0;
 	}
 	else{
-		char* desconto;
+		char desconto[4];
 		scanf("%[^\n]%*c", desconto);
 
 		int i = atoi(desconto);
 		//conferindo se o desconto passado pelo usuario segue a formatacao necessaria
-		while(i < 0 || i > 100 || strlen(desconto) != 3){
+		while(i < 0 || i > 100 || strlen(desconto) != 3 || !(isdigit(desconto[0]))
+				|| !(isdigit(desconto[1])) || !(isdigit(desconto[2]))){
 			printf(CAMPO_INVALIDO);
 			scanf("%s%*c", desconto);
 			i = atoi(desconto);
 		}
-
-		char* p = ARQUIVO_IP + (tamanho_registro_ip * *retornoRRN);
-		char* tempRRN = NULL;
-		//posicionando o ponteiro na posicao onde se encontra o rrn do arquivo de dados
-		p += 3 + 10;
-		//passando o rrn do arquivo de dados para uma string temporaria
-		for(int j = 0; j < 4; j++){
-			tempRRN[j] = p[j];
-		}
-		int rrnDados = atoi(tempRRN);
+		char* p = NULL;
 		//recuperando o produto para ter acesso a seus campos
-		Produto alterado = recuperar_registro(rrnDados);
+		Produto alterado = recuperar_registro(*retornoRRN);
 		//obtendo o deslocamento necessario para encontrar o campo desconto do registro
-		int deslocamento = strlen(alterado.nome) + strlen(alterado.marca) + strlen(alterado.data)
-		 				+ strlen(alterado.ano) + strlen(alterado.preco) + (rrnDados * 192) + 5;
-
+		int deslocamento = 11 + strlen(alterado.nome) + strlen(alterado.marca) + 22;
 		//posicionando o apontador no inicio do campo desconto
-		p = ARQUIVO + deslocamento;
+		p = ARQUIVO + deslocamento + *retornoRRN * 192;
 		//escrevendo o novo desconto no arquivo de dados
 		int z;
 		for(z = 0; z < 3; z++){
@@ -1358,7 +1339,7 @@ int alterar_desconto(Indice* iprimary){
 		 	scanf("%[^\n]%*c", chaveBusca);
 			printf("Busca por %s. Nos percorridos:\n", chaveBusca);
 			foundIt = busca_ip(iprimary.raiz, chaveBusca, 1);
-			if(!foundIt){
+			if(!foundIt || nregistros == 0){
 				free(chaveBusca);
 				printf(REGISTRO_N_ENCONTRADO);
 				return;
@@ -1378,7 +1359,7 @@ int alterar_desconto(Indice* iprimary){
 			 printf("Busca por %s$%s.\nNos percorridos:\n", marcaBusca, nomeBusca);
 
 			 foundItIs = busca_is(ibrand.raiz, nomeBusca, marcaBusca, 1);
-			 if(foundItIs == NULL){
+			 if(foundItIs == NULL || nregistros == 0){
 			 	printf(REGISTRO_N_ENCONTRADO);
 				free(chaveBusca);
 				return;
