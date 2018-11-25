@@ -222,7 +222,7 @@ void inserir_tabela(Hashtable* hash, Produto produto){
         Chave *novo = (Chave *)calloc(sizeof(Chave), 1);
         novo->prox = NULL;
         strcpy(novo->pk, produto.pk);
-        Chave *aux2 = NULL;
+        Chave *aux = NULL;
 
         //inserindo na primeira posicao
         if (strcmp(produto.pk, percorre->pk) < 0)
@@ -238,18 +238,18 @@ void inserir_tabela(Hashtable* hash, Produto produto){
         }
         else
         {
-            aux2 = percorre;
+            aux = percorre;
             percorre = percorre->prox;
             while (percorre->prox != NULL)
             {
                 if (strcmp(produto.pk, percorre->pk) < 0)
                 {
-                    aux2->prox = novo;
+                    aux->prox = novo;
                     novo->prox = percorre;
                     inserido = 1;
                     break;
                 }
-                aux2 = percorre;
+                aux = percorre;
                 percorre = percorre->prox;
                 //inserindo na ultima posicao
             }
@@ -257,7 +257,7 @@ void inserir_tabela(Hashtable* hash, Produto produto){
             {
                 if (strcmp(produto.pk, percorre->pk) < 0)
                 {
-                    aux2->prox = novo;
+                    aux->prox = novo;
                     novo->prox = percorre;
                 }
                 else
