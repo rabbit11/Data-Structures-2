@@ -117,6 +117,8 @@ void inserir(Hashtable* table, Produto produto);
 int inserir_tabela(Hashtable* table, Produto produto);
 //faz uma busca pelo produto passado como parametro na hashtable
 Chave* buscar_tabela(Hashtable* table, char* pk);
+//remove registro do arquivo de dados
+void remover_arquivodedados(int rrn);
 //imprime todos os termos contidos na hashtable
 void imprimir_tabela(Hashtable tabela);
 //gera a chave primaria com base no produto passado como parametro
@@ -246,10 +248,10 @@ int inserir_tabela(Hashtable* table, Produto produto){
     }else{//caso haja pelo menos um produto naquela posição, o insere de maneira ordenada na lista
         Chave *percorre = table->v[pos];
         Chave *novo = (Chave *)calloc(sizeof(Chave), 1);
-        Chave *aux = NULL;
-
-        novo->prox = NULL;
         strcpy(novo->pk, produto.pk);
+        Chave *aux = NULL;
+        novo->rrn = nregistros;
+        novo->prox = NULL;
 
         //inserindo na primeira posicao
         if (strcmp(produto.pk, percorre->pk) < 0)
@@ -290,10 +292,12 @@ int inserir_tabela(Hashtable* table, Produto produto){
                 {
                     aux->prox = novo;
                     novo->prox = percorre;
+                    return 1;
                 }
                 else
                 {
                     percorre->prox = novo;
+                    return 1;
                 }
             }
         }
@@ -314,11 +318,11 @@ Chave* buscar_tabela(Hashtable* table, char* pk){
     }
     return NULL;
 }
-//busca determinado produto passado pelo usuario
+//busca determinado produto passado pelo usuario e printa o registro encontrado
 void buscar(Hashtable tabela){
     char pk[TAM_PRIMARY_KEY];
 
-    scanf("%[\n]%*c", pk);
+    scanf("%[^\n]%*c", pk);
 
     int posProduto = hash(pk, tabela.tam);
     Chave* p = tabela.v[posProduto];
@@ -326,6 +330,7 @@ void buscar(Hashtable tabela){
     while(p != NULL){
         if(strcmp(p->pk, pk) == 0){
             exibir_registro(p->rrn);
+            return;
         }else{
             p = p->prox;
         }
@@ -355,8 +360,8 @@ void cadastrar(Hashtable* table)
     gerarChave(&novo);
     //checa se a chave gerada já existia no sistema, se sim a função se encerra
     //TODO descomentar
-    // if (verifica_chave(novo.pk, *table) == 0)
-        // return;
+    if (verifica_chave(novo.pk, *table) == 0)
+        return;
     //imprime todos os dados do produto em uma string temporaria, para depois
     //ser passada para o arquivo principal
     sprintf(temp, "%s@%s@%s@%s@%s@%s@%s@%s@", novo.pk, novo.nome, novo.marca, novo.data,
@@ -377,7 +382,8 @@ void cadastrar(Hashtable* table)
     *fimArquivo = '\0';
 
     //inserindo o produto no indice primario
-    inserir_tabela(table, novo);
+    inserir(table, novo);
+
     nregistros++;
 }
 //altera o desconto do produto referente a chave primaria inserida
@@ -389,19 +395,20 @@ int alterar_desconto(Hashtable table)
     //busca pk no indice primario
     Chave *retorno = buscar_tabela(&table, pkBusca);
 
-    if (!retorno->rrn || nregistros == 0)
+    if (!retorno|| nregistros == 0)
     {
         printf(REGISTRO_N_ENCONTRADO);
         return 0;
     }
     else
     {
-        char desconto[4];
+        char desconto[100];
         scanf("%[^\n]%*c", desconto);
 
         int i = atoi(desconto);
         //conferindo se o desconto passado pelo usuario segue a formatacao necessaria
-        while (i < 0 || i > 100 || strlen(desconto) != 3 || !(isdigit(desconto[0])) || !(isdigit(desconto[1])) || !(isdigit(desconto[2])))
+        while (i < 0 || i > 100 || strlen(desconto) != 3 || !(isdigit(desconto[0]))
+                || !(isdigit(desconto[1])) || !(isdigit(desconto[2])))
         {
             printf(CAMPO_INVALIDO);
             scanf("%s%*c", desconto);
@@ -425,11 +432,66 @@ int alterar_desconto(Hashtable table)
 }
 //carrega a tabela com base no arquivo de dados
 void carregar_tabela(Hashtable *tabela){
-    //TODO
+    int tempnregistros = strlen(ARQUIVO) / TAM_REGISTRO;
+    Produto novo;
+    for(int nregistros = 0; nregistros < tempnregistros; nregistros++){
+        novo = recuperar_registro(nregistros);
+        inserir_tabela(tabela, novo);
+    }
 }
 //remove determinado produto do indice e arquivo de dados
 int remover(Hashtable *tabela){
-    //TODO
+    char pk[TAM_PRIMARY_KEY];
+    int encontrou = 0;
+
+    scanf("%[^\n]%*c", pk);
+
+    int posProduto = hash(pk, tabela->tam);
+    Chave* aux = NULL;
+    Chave* p = tabela->v[posProduto];
+
+    while(p != NULL){
+        if(strcmp(p->pk, pk) == 0){
+            if(aux){//caso o elemento a ser removido esteja no meio da lista
+                if(p->prox){//caso esteja no meio
+                    aux->prox = p->prox;
+                }else{//caso esteja no fim
+                    aux->prox = NULL;
+                }
+                encontrou = 1;
+            }else{
+                if(p->prox){//caso esteja no inicio da lista de varios termos
+                    tabela->v[posProduto] = p->prox;
+                }else{//caso esteja no inicio da lista de 1 termo
+                    tabela->v[posProduto] = NULL;
+                }
+                encontrou = 1;
+            }
+            free(p);
+            break;
+        }else{
+            p = p->prox;
+            aux = p;
+        }
+    }
+    if(encontrou == 0){
+        printf(REGISTRO_N_ENCONTRADO);
+        return 0;
+    }else{
+        remover_arquivodedados(p->rrn);
+        p->rrn = -1;
+        return 1;
+    }
+}
+//remove determinado produto do arquivo de dados
+void remover_arquivodedados(int rrn){
+    if(rrn != -1 && nregistros > 0){
+        char* posProduto = ARQUIVO + (192 * rrn);
+        *(posProduto) = '*';
+        *(posProduto + 1) = '|';
+    }else{
+        return;
+    }
 }
 //libera memoria alocada pela tabela
 void liberar_tabela(Hashtable *tabela){
@@ -437,7 +499,29 @@ void liberar_tabela(Hashtable *tabela){
 }
 //imprime todos os produtos inseridos na hashtable
 void imprimir_tabela(Hashtable tabela){
-    //TODO
+
+    Chave* percorre = NULL;
+    int imprimiu = 0;
+    for(int i = 0; i < tabela.tam; i++){
+        imprimiu = 0;
+
+        if(tabela.v[i]){//imprime o primeiro registro daquela pos se nao for nulo
+            printf("[%d] %s",i ,tabela.v[i]->pk);
+            percorre = tabela.v[i];
+            percorre = percorre->prox;
+            //imprime os demais registros daquela pos
+            while(percorre != NULL){
+                printf(" %s", percorre->pk);
+                percorre = percorre->prox;
+            }
+            imprimiu = 1;
+        }else{
+            printf("[%d]\n", i);
+        }
+        if(imprimiu == 1){
+            printf("\n");
+        }
+    }
 }
 //Gera uma chave primária com base no produto fornecido como parâmetro
 void gerarChave(Produto *p)
@@ -531,25 +615,35 @@ Produto recuperar_registro(int rrn)
 /* Exibe o Produto */
 int exibir_registro(int rrn)
 {
-    if (rrn < 0)
-        return 0;
-    float preco;
-    int desconto;
-    Produto j = recuperar_registro(rrn);
-    char *cat, categorias[TAM_CATEGORIA];
-    printf("%s\n", j.pk);
-    printf("%s\n", j.nome);
-    printf("%s\n", j.marca);
-    printf("%s\n", j.data);
+	if(rrn<0)
+		return 0;
+	float preco;
+	int desconto;
+	Produto j = recuperar_registro(rrn);
+  	char *cat, categorias[TAM_CATEGORIA];
+	printf("%s\n", j.pk);
+	printf("%s\n", j.nome);
+	printf("%s\n", j.marca);
+	printf("%s\n", j.data);
     printf("%s\n", j.ano);
-    sscanf(j.desconto, "%d", &desconto);
-    sscanf(j.preco, "%f", &preco);
-    preco = preco * (100 - desconto);
-    preco = ((int)preco) / (float)100;
-    printf("%07.2f\n", preco);
-    strncpy(categorias, j.categoria, strlen(j.categoria));
-    for (cat = strtok(categorias, "|"); cat != NULL; cat = strtok(NULL, "|"))
-        printf("%s ", cat);
-    printf("\n");
-    return 1;
+	sscanf(j.desconto,"%d",&desconto);
+	sscanf(j.preco,"%f",&preco);
+	preco = preco *  (100-desconto);
+	preco = ((int) preco)/ (float) 100 ;
+	printf("%07.2f\n",  preco);
+	strcpy(categorias, j.categoria);
+
+	cat = strtok (categorias, "|");
+
+	while(cat != NULL){
+		printf("%s", cat);
+		cat = strtok (NULL, "|");
+		if(cat != NULL){
+			printf(" ");
+		}
+	}
+
+	printf(" \n");
+
+	return 1;
 }
