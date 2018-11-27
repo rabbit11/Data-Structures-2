@@ -110,15 +110,19 @@ void liberar_tabela(Hashtable *tabela);
 
 /* <<< DECLARE AQUI OS PROTOTIPOS >>> */
 //inicia a hashtable
-void criar_tabela(Hashtable* hash, int tam);
+void criar_tabela(Hashtable* table, int tam);
+//insere um produto na hashtable
+void inserir(Hashtable* table, Produto produto);
+//função auxiliar para inserir um produto na hashtable
+int inserir_tabela(Hashtable* table, Produto produto);
 //faz uma busca pelo produto passado como parametro na hashtable
-Chave* buscar_tabela(Hashtable* hash, char* pk);
+Chave* buscar_tabela(Hashtable* table, char* pk);
 //imprime todos os termos contidos na hashtable
 void imprimir_tabela(Hashtable tabela);
 //gera a chave primaria com base no produto passado como parametro
 void gerarChave(Produto *p);
 //verifica se determinada chave se encontra no indice indice_primario
-int verifica_chave(char* pk, Hashtable hash);
+int verifica_chave(char* pk, Hashtable table);
 //retorna o produto referente aquele rrn do arquivo de Dados
 Produto recuperar_registro(int rrn);
 /* ==========================================================================
@@ -204,51 +208,64 @@ int prox_primo(int a){
     return a;
 }
 //inicializa a hashtable
-void criar_tabela(Hashtable* hash, int tam){
+void criar_tabela(Hashtable* table, int tam){
     int tamanhoHash = prox_primo(tam);
-    // hash = (Hashtable*)calloc(tamanhoHash,sizeof(Hashtable));
-    hash = (Hashtable*)calloc(1, sizeof(Hashtable));
-    hash->tam = tamanhoHash;
-    hash->v = (Chave**)calloc(tamanhoHash, sizeof(Chave));
+    table->tam = tamanhoHash;
+    table->v = (Chave**)calloc(tamanhoHash, sizeof(Chave));
 
     //inicializando todas as posicoes do vetor v como NULL
     for(int i = 0; i < tamanhoHash; i++){
-        hash->v[i] = NULL;
+        table->v[i] = NULL;
     }
     //inicializando nregistros
     nregistros = 0;
 }
 //insere um produto na hashtable
-void inserir_tabela(Hashtable* hash, Produto produto){
+void inserir(Hashtable* table, Produto produto){
+    if(inserir_tabela(table, produto) == 1){
+        printf(REGISTRO_INSERIDO, produto.pk);
+    }else{
+        return;
+    }
+}
+//função auxiliar para inserir um produto na hashtable
+int inserir_tabela(Hashtable* table, Produto produto){
     //encontrando a posicao para inserir o novo produto dentro da hash
-    short pos = f(produto.pk[0]);
+    short pos = hash(produto.pk, table->tam);
+    int inserido = 0;
 
     //inserindo o produto naquela posicao da hash
-    if(hash->v[pos] == NULL){//caso aquela posição esteja vazia, apenas insere
-        strcpy(hash->v[pos]->pk, produto.pk);
-        hash->v[pos]->rrn = nregistros;
-        hash->v[pos]->prox = NULL;
+    if(table->v[pos] == NULL){//caso aquela posição esteja vazia, apenas insere
+        Chave *novo = (Chave*)calloc(1, sizeof(Chave));
+        strcpy(novo->pk, produto.pk);
+        novo->rrn = nregistros;
+        novo->prox = NULL;
+        table->v[pos] = novo;
+
+        return 1;
     }else{//caso haja pelo menos um produto naquela posição, o insere de maneira ordenada na lista
-        printf("pinto\n");
-        Chave *percorre = hash->v[pos];
+        Chave *percorre = table->v[pos];
         Chave *novo = (Chave *)calloc(sizeof(Chave), 1);
+        Chave *aux = NULL;
+
         novo->prox = NULL;
         strcpy(novo->pk, produto.pk);
-        Chave *aux = NULL;
-        int inserido = 0;
 
         //inserindo na primeira posicao
         if (strcmp(produto.pk, percorre->pk) < 0)
         {
-            novo->prox = hash->v[pos];
-            hash->v[pos] = novo;
-            //inserindo como segundo elemento da lista
+            novo->prox = table->v[pos];
+            table->v[pos] = novo;
+
+            return 1;
         }
+        //inserindo como segundo elemento da lista
         else if (percorre->prox == NULL)
         {
             percorre->prox = novo;
-            //inserindo nas demais posicoes
+            return 1;
         }
+        //inserindo nas demais posicoes
         else
         {
             aux = percorre;
@@ -260,6 +277,7 @@ void inserir_tabela(Hashtable* hash, Produto produto){
                     aux->prox = novo;
                     novo->prox = percorre;
                     inserido = 1;
+                    return 1;// ta certo isso?
                     break;
                 }
                 aux = percorre;
@@ -280,12 +298,12 @@ void inserir_tabela(Hashtable* hash, Produto produto){
             }
         }
     }
-
+    return 0;
 }
 //busca determinado produto no indice primario pela pk passada como parametro
-Chave* buscar_tabela(Hashtable* hash, char* pk){
-    int posProduto = f(pk[0]);
-    Chave* p = hash->v[posProduto];
+Chave* buscar_tabela(Hashtable* table, char* pk){
+    int posProduto = hash(pk, table->tam);
+    Chave* p = table->v[posProduto];
 
     while(p != NULL){
         if(strcmp(p->pk, pk) == 0){
@@ -302,7 +320,7 @@ void buscar(Hashtable tabela){
 
     scanf("%[\n]%*c", pk);
 
-    int posProduto = f(pk[0]);
+    int posProduto = hash(pk, tabela.tam);
     Chave* p = tabela.v[posProduto];
 
     while(p != NULL){
@@ -320,7 +338,7 @@ void carregar_arquivo()
     scanf("%[^\n]\n", ARQUIVO);
 }
 //cadastra determinado produto nos arquivos de indices e dados
-void cadastrar(Hashtable* hash)
+void cadastrar(Hashtable* table)
 {
     char temp[TAM_REGISTRO];
     Produto novo;
@@ -337,7 +355,7 @@ void cadastrar(Hashtable* hash)
     gerarChave(&novo);
     //checa se a chave gerada já existia no sistema, se sim a função se encerra
     //TODO descomentar
-    // if (verifica_chave(novo.pk, *hash) == 0)
+    // if (verifica_chave(novo.pk, *table) == 0)
         // return;
     //imprime todos os dados do produto em uma string temporaria, para depois
     //ser passada para o arquivo principal
@@ -359,17 +377,17 @@ void cadastrar(Hashtable* hash)
     *fimArquivo = '\0';
 
     //inserindo o produto no indice primario
-    inserir_tabela(hash, novo);
+    inserir_tabela(table, novo);
     nregistros++;
 }
 //altera o desconto do produto referente a chave primaria inserida
-int alterar_desconto(Hashtable hash)
+int alterar_desconto(Hashtable table)
 {
     char pkBusca[TAM_PRIMARY_KEY];
     //recebe pk do usuario
     scanf("%[^\n]%*c", pkBusca);
     //busca pk no indice primario
-    Chave *retorno = buscar_tabela(&hash, pkBusca);
+    Chave *retorno = buscar_tabela(&table, pkBusca);
 
     if (!retorno->rrn || nregistros == 0)
     {
@@ -458,17 +476,26 @@ void gerarChave(Produto *p)
     p->pk[i] = '\0';
 }
 //verifica se a chave passada como parametro ja se encontra em ip
-int verifica_chave(char* pk, Hashtable hash)
+int verifica_chave(char* pk, Hashtable table)
 {
     //TODO: finalizar implementacao
     Chave *foundIt = NULL;
-    foundIt = buscar_tabela(&hash, pk);
+    foundIt = buscar_tabela(&table, pk);
     if (foundIt)
     {
         printf(ERRO_PK_REPETIDA, pk);
         return 0;
     }
     return 1;
+}
+//função de hash
+short hash(const char *chave, int tam){
+    int posicao = 0;
+    for(int i = 0; i < 8; i++){
+        posicao += (i + 1) * f(chave[i]);
+    }
+    posicao = posicao % tam;
+    return posicao;
 }
 /*Auxiliar para a função de hash*/
 short f(char x)
