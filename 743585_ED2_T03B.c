@@ -414,30 +414,13 @@ int alterar_desconto(Hashtable table)
             scanf("%s%*c", desconto);
             i = atoi(desconto);
         }
-        // char *p = NULL;
         //recuperando o produto para ter acesso a seus campos
         Produto alterado = recuperar_registro(retorno->rrn);
         //obtendo o deslocamento necessario para encontrar o campo desconto do registro
-        // int deslocamento = 10 + 6 + strlen(alterado.ano) + strlen(alterado.preco) +  strlen(alterado.nome)
-        //                     + strlen(alterado.marca)+ 2;
         int deslocamento = strlen(alterado.pk) + strlen(alterado.nome) + strlen(alterado.marca)
         + strlen(alterado.data) + strlen(alterado.ano) + strlen(alterado.preco) + (retorno->rrn * 192) + 6;
         // //posicionando o apontador no inicio do campo desconto
         char* p = ARQUIVO + deslocamento;
-        // printf("FF %c %c\n", p[0], p[1]);
-        // char* p = ARQUIVO + retorno->rrn * 192;
-        // int arrobas = 0;
-        // int deslocamento = 0;
-        // for(; deslocamento < 192 ; deslocamento++){
-        //     if(p[deslocamento] == '@'){
-        //         if(arrobas <= 6){
-        //             arrobas++;
-        //         }else{
-        //             break;
-        //         }
-        //     }
-        // }
-        // p += deslocamento;
         //escrevendo o novo desconto no arquivo de dados
         int z;
         for (z = 0; z < 3; z++)
@@ -451,7 +434,7 @@ int alterar_desconto(Hashtable table)
 void carregar_tabela(Hashtable *tabela){
     int tempnregistros = strlen(ARQUIVO) / TAM_REGISTRO;
     Produto novo;
-    for(int nregistros = 0; nregistros < tempnregistros; nregistros++){
+    for(nregistros = 0; nregistros < tempnregistros; nregistros++){
         novo = recuperar_registro(nregistros);
         inserir_tabela(tabela, novo);
     }
@@ -513,7 +496,9 @@ void remover_arquivodedados(int rrn){
 }
 //libera memoria alocada pela tabela
 void liberar_tabela(Hashtable *tabela){
-    //TODO
+    for(int i = 0; i < tabela->tam; i++){
+        free(tabela->v[i]);
+    }
 }
 //imprime todos os produtos inseridos na hashtable
 void imprimir_tabela(Hashtable tabela){
