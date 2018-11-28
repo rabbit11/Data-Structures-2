@@ -149,13 +149,13 @@ int main()
 {
 	/* Arquivo */
 	int carregarArquivo = 0;
-	scanf("%d\n", &carregarArquivo); // 1 (sim) | 0 (nao)
+	scanf("%d%*c", &carregarArquivo); // 1 (sim) | 0 (nao)
 	if (carregarArquivo)
 		carregar_arquivo();
 
 	/* Tabela Hash */
 	int tam;
-	scanf("%d", &tam);
+	scanf("%d%*c", &tam);
 	tam = prox_primo(tam);
 
 	Hashtable tabela;
@@ -259,22 +259,14 @@ int inserir_tabela(Hashtable* table, Produto produto){
 }
 //faz uma busca pelo produto passado como parametro na hashtable
 Chave* buscar_tabela(Hashtable* table, char* pk){
-	short pos = hash(pk, table->tam);
-
-	if(table->v[pos].estado == OCUPADO){
-		for(int i = 0; i < 2 * table->tam; i++){
-			if(pos > table->tam){
-				pos = 0;
-			}
-			if(strcmp(table->v[pos].pk, pk) == 0){
-				if(table->v[pos].estado == REMOVIDO){
-					return NULL;
+	//fazemos a busca no vetor como um todo, da primeira a ultima pos
+		for(int i = 0; i < table->tam; i++){
+			if(strcmp(table->v[i].pk, pk) == 0){
+				if(table->v[i].estado != REMOVIDO){
+					return &table->v[i];
 				}
-				return &table->v[pos];
 			}
-			pos++;
 		}
-	}
 	return NULL;
 }
 //faz uma busca pelo produto lido da entrada na hashtable
@@ -287,6 +279,7 @@ void buscar(Hashtable table){
 	encontrou = buscar_tabela(&table, pk);
 
 	if(encontrou){
+		//exibe o registro caso a busca aux tenha retornado algum registro
 		exibir_registro(encontrou->rrn);
 	}else{
 		printf(REGISTRO_N_ENCONTRADO);
@@ -361,7 +354,7 @@ int alterar_desconto(Hashtable table)
     }
     else
     {
-        char desconto[100];
+        char desconto[200];
         scanf("%[^\n]%*c", desconto);
 
         int i = atoi(desconto);
@@ -370,7 +363,7 @@ int alterar_desconto(Hashtable table)
                 || !(isdigit(desconto[1])) || !(isdigit(desconto[2])))
         {
             printf(CAMPO_INVALIDO);
-            scanf("%s%*c", desconto);
+            scanf("%[^\n]%*c", desconto);
             i = atoi(desconto);
         }
         //recuperando o produto para ter acesso a seus campos
@@ -523,7 +516,7 @@ short hash(const char *chave, int tam){
 }
 /* Recebe do usuário uma string simulando o arquivo completo. */
 void carregar_arquivo() {
-	scanf("%[^\n]\n", ARQUIVO);
+	scanf("%[^\n]%*c", ARQUIVO);
 }
 /*Retorna o primeiro número primo >= a*/
 int prox_primo(int a){
