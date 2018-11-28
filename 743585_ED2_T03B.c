@@ -414,13 +414,30 @@ int alterar_desconto(Hashtable table)
             scanf("%s%*c", desconto);
             i = atoi(desconto);
         }
-        char *p = NULL;
+        // char *p = NULL;
         //recuperando o produto para ter acesso a seus campos
         Produto alterado = recuperar_registro(retorno->rrn);
         //obtendo o deslocamento necessario para encontrar o campo desconto do registro
-        int deslocamento = 11 + strlen(alterado.nome) + strlen(alterado.marca) + 22;
-        //posicionando o apontador no inicio do campo desconto
-        p = ARQUIVO + deslocamento + retorno->rrn * 192;
+        // int deslocamento = 10 + 6 + strlen(alterado.ano) + strlen(alterado.preco) +  strlen(alterado.nome)
+        //                     + strlen(alterado.marca)+ 2;
+        int deslocamento = strlen(alterado.pk) + strlen(alterado.nome) + strlen(alterado.marca)
+        + strlen(alterado.data) + strlen(alterado.ano) + strlen(alterado.preco) + (retorno->rrn * 192) + 6;
+        // //posicionando o apontador no inicio do campo desconto
+        char* p = ARQUIVO + deslocamento;
+        // printf("FF %c %c\n", p[0], p[1]);
+        // char* p = ARQUIVO + retorno->rrn * 192;
+        // int arrobas = 0;
+        // int deslocamento = 0;
+        // for(; deslocamento < 192 ; deslocamento++){
+        //     if(p[deslocamento] == '@'){
+        //         if(arrobas <= 6){
+        //             arrobas++;
+        //         }else{
+        //             break;
+        //         }
+        //     }
+        // }
+        // p += deslocamento;
         //escrevendo o novo desconto no arquivo de dados
         int z;
         for (z = 0; z < 3; z++)
@@ -458,7 +475,9 @@ int remover(Hashtable *tabela){
                 }else{//caso esteja no fim
                     aux->prox = NULL;
                 }
+                free(p);
                 encontrou = 1;
+                break;
             }else{
                 if(p->prox){//caso esteja no inicio da lista de varios termos
                     tabela->v[posProduto] = p->prox;
@@ -470,8 +489,8 @@ int remover(Hashtable *tabela){
             free(p);
             break;
         }else{
-            p = p->prox;
             aux = p;
+            p = p->prox;
         }
     }
     if(encontrou == 0){
@@ -479,7 +498,6 @@ int remover(Hashtable *tabela){
         return 0;
     }else{
         remover_arquivodedados(p->rrn);
-        p->rrn = -1;
         return 1;
     }
 }
