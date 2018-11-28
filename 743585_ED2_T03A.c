@@ -229,8 +229,8 @@ int inserir_tabela(Hashtable* table, Produto produto){
 
 	if(table->v[pos].estado == OCUPADO){
 		pos++;
-		for(colisoes = 1; colisoes < table->tam; colisoes++){
-			if(pos > table->tam){
+		for(colisoes = 1; colisoes < 2 * table->tam; colisoes++){
+			if(pos > table->tam - 1){
 				pos = 0;
 			}
 			if(table->v[pos].estado != OCUPADO){
@@ -240,8 +240,9 @@ int inserir_tabela(Hashtable* table, Produto produto){
 				inserido = 1;
 
 				return colisoes;
+			}else{
+				pos++;
 			}
-			pos++;
 		}
 	}else{
 		strcpy(table->v[pos].pk, produto.pk);
@@ -261,11 +262,14 @@ Chave* buscar_tabela(Hashtable* table, char* pk){
 	short pos = hash(pk, table->tam);
 
 	if(table->v[pos].estado == OCUPADO){
-		for(int i = 0; i < table->tam; i++){
+		for(int i = 0; i < 2 * table->tam; i++){
 			if(pos > table->tam){
 				pos = 0;
 			}
 			if(strcmp(table->v[pos].pk, pk) == 0){
+				if(table->v[pos].estado == REMOVIDO){
+					return NULL;
+				}
 				return &table->v[pos];
 			}
 			pos++;
@@ -387,6 +391,26 @@ int alterar_desconto(Hashtable table)
 }
 //remove determinado produto da hashtable
 int remover(Hashtable *tabela){
+	char pk[TAM_PRIMARY_KEY];
+
+	scanf("%[^\n]%*c", pk);
+
+	if(nregistros < 0){
+		printf(REGISTRO_N_ENCONTRADO);
+		return 0;
+	}
+
+	Chave* removido = buscar_tabela(tabela, pk);
+
+	if(removido){
+		removido->estado = REMOVIDO;
+		remover_arquivodedados(removido->rrn);
+
+		return 1;
+	}else{
+		printf(REGISTRO_N_ENCONTRADO);
+	}
+	return 0;
 }
 //remove determinado produto do arquivo de dados
 void remover_arquivodedados(int rrn){
@@ -545,6 +569,7 @@ Produto recuperar_registro(int rrn)
     return j;
 }
 /* Exibe o Produto */
+/* Exibe o Produto */
 int exibir_registro(int rrn)
 {
 	if(rrn<0)
@@ -552,20 +577,30 @@ int exibir_registro(int rrn)
 	float preco;
 	int desconto;
 	Produto j = recuperar_registro(rrn);
-  char *cat, categorias[TAM_CATEGORIA];
+  	char *cat, categorias[TAM_CATEGORIA];
 	printf("%s\n", j.pk);
 	printf("%s\n", j.nome);
 	printf("%s\n", j.marca);
 	printf("%s\n", j.data);
-	printf("%s\n", j.ano);
+    printf("%s\n", j.ano);
 	sscanf(j.desconto,"%d",&desconto);
 	sscanf(j.preco,"%f",&preco);
 	preco = preco *  (100-desconto);
 	preco = ((int) preco)/ (float) 100 ;
 	printf("%07.2f\n",  preco);
-	strncpy(categorias, j.categoria, strlen(j.categoria));
-  for (cat = strtok (categorias, "|"); cat != NULL; cat = strtok (NULL, "|"))
-    printf("%s ", cat);
-	printf("\n");
+	strcpy(categorias, j.categoria);
+
+	cat = strtok (categorias, "|");
+
+	while(cat != NULL){
+		printf("%s", cat);
+		cat = strtok (NULL, "|");
+		if(cat != NULL){
+			printf(" ");
+		}
+	}
+
+	printf(" \n");
+
 	return 1;
 }
