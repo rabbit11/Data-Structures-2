@@ -448,7 +448,7 @@ void imprimir_tabela(Hashtable tabela){
 }
 //libera a memoria alocada pela hashtable
 void liberar_tabela(Hashtable* tabela){
-
+	free(tabela->v);
 }
 //inicializa a hashtable
 void criar_tabela(Hashtable* table, int tam){
@@ -521,7 +521,6 @@ short hash(const char *chave, int tam){
     posicao = posicao % tam;
     return posicao;
 }
-
 /* Recebe do usuário uma string simulando o arquivo completo. */
 void carregar_arquivo() {
 	scanf("%[^\n]\n", ARQUIVO);
